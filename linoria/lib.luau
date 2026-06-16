@@ -76,25 +76,6 @@ function Library:UpdateBlur()
             Library.BlurEffect.Enabled = true
             TweenService:Create(Library.BlurEffect, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {Size = Library.BlurSize}):Play()
         end
-        
-        local function GetValueImage(Value)
-            if not Value then
-                return nil
-            end
-
-            local ValueImage = nil
-            if Dropdown.SpecialType == 'Player' and Info.EnablePlayerImages == true then
-                if typeof(Value) == 'Instance' and Value:IsA('Player') then
-                    ValueImage = { Url = string.format('rbxthumb://type=AvatarHeadShot&id=%s&w=48&h=48', tostring(Value.UserId)) }
-                end
-            else
-                if Info.ValueImages and Info.ValueImages[Value] then
-                    ValueImage = Library:GetCustomIcon(Info.ValueImages[Value])
-                end
-            end
-
-            return ValueImage
-        end
     else
         local tween = TweenService:Create(Library.BlurEffect, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {Size = 0})
         tween:Play()
@@ -2553,7 +2534,7 @@ do
                             ValueImage = GetValueImage(Value)
                         end
 
-                        Str = Str .. ((typeof(Info.FormatDisplayValue) == 'function' and tostring(Info.FormatDisplayValue(Value))) or tostring(Value)) .. ', '
+                        Str = Str .. (Info.FormatDisplayValue and tostring(Info.FormatDisplayValue(Value)) or tostring(Value)) .. ', '
                     end
                 end
 
@@ -2562,7 +2543,7 @@ do
                 ValueImage = GetValueImage(Dropdown.Value)
                 Str = Dropdown.Value and tostring(Dropdown.Value) or ''
 
-                if Str ~= '' and typeof(Info.FormatDisplayValue) == 'function' then
+                if Str ~= '' and Info.FormatDisplayValue then
                     Str = tostring(Info.FormatDisplayValue(Str))
                 end
             end
@@ -2599,7 +2580,7 @@ do
             local Count = 0;
 
             for Idx, Value in next, Values do
-                local FormattedValue = tostring((typeof(Info.FormatListValue) == 'function' and Info.FormatListValue(Value)) or Value)
+                local FormattedValue = tostring(Value)
                 local skip = false
                 if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
                     skip = true
@@ -2609,14 +2590,14 @@ do
                     Count = Count + 1;
 
                     local Button = Library:Create('Frame', {
-                        BackgroundColor3 = Library.MainColor;
-                        BorderColor3 = Library.OutlineColor;
-                        BorderMode = Enum.BorderMode.Middle;
-                        Size = UDim2.new(1, -1, 0, 20);
-                        ZIndex = 23;
-                        Active = true,
-                        Parent = Scrolling;
-                    });
+                    BackgroundColor3 = Library.MainColor;
+                    BorderColor3 = Library.OutlineColor;
+                    BorderMode = Enum.BorderMode.Middle;
+                    Size = UDim2.new(1, -1, 0, 20);
+                    ZIndex = 23;
+                    Active = true,
+                    Parent = Scrolling;
+                });
                 Library:AddToRegistry(Button, {
                     BackgroundColor3 = 'MainColor';
                     BorderColor3 = 'OutlineColor';
@@ -2626,7 +2607,7 @@ do
                     Size = UDim2.new(1, -6, 1, 0);
                     Position = UDim2.new(0, 6, 0, 0);
                     TextSize = Library.FontSize;
-                    Text = FormattedValue;
+                    Text = Value;
                     TextXAlignment = Enum.TextXAlignment.Left;
                     ZIndex = 25;
                     Parent = Button;
