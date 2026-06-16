@@ -27,7 +27,7 @@ local Library = {
     Registry = {};
     RegistryMap = {};
 
-    HudRegistry = {};
+        HudRegistry = {};
 
     FontColor = Color3.fromRGB(255, 255, 255);
     MainColor = Color3.fromRGB(28, 28, 28);
@@ -84,10 +84,9 @@ function Library:UpdateBlur()
             if not Library.UseBlur then
                 Library.BlurEffect.Enabled = false
             end
-        end)
-    end
-end
-
+        end
+        getgenv().Library = Library
+        return Library
 function Library:SetFontSize(Size)
     Library.FontSize = Size
     for _, descendant in pairs(ScreenGui:GetDescendants()) do
@@ -4014,4 +4013,5 @@ if InputService.TouchEnabled then
 end
 end
 getgenv().Library = Library
+return Library
 return Library
