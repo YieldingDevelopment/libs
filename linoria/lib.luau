@@ -4005,7 +4005,7 @@ end
 end
 
 -- ensure all blocks closed
-end
+
 
 getgenv().Library = Library
 return Library
