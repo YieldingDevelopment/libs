@@ -2351,7 +2351,7 @@ do
         if SearchBox then
                     Info.Text = "";
                     Info.Visible = Active and true;
-        end
+        end;
 
         assert(Info.Values, 'AddDropdown: Missing dropdown value list.');
         assert(Info.AllowNull or Info.Default, 'AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional.')
