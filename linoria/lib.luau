@@ -1603,9 +1603,15 @@ do
                 Obj.Func = Props.Func
                 Obj.DoubleClick = Props.DoubleClick
                 Obj.Tooltip = Props.Tooltip
+                Obj.Disabled = Props.Disabled or false
+                Obj.Visible = if Props.Visible == nil then true else Props.Visible
+                Obj.Risky = Props.Risky or false
             else
                 Obj.Text = select(1, ...)
                 Obj.Func = select(2, ...)
+                Obj.Disabled = false
+                Obj.Visible = true
+                Obj.Risky = false
             end
 
             assert(type(Obj.Func) == 'function', 'AddButton: `Func` callback is missing.');
