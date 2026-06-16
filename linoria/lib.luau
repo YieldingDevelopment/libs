@@ -3112,7 +3112,6 @@ function Library:CreateWindow(...)
     if type(Config.Title) ~= 'string' then Config.Title = 'No title' end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
-    if type(Config.ShowMapName) ~= 'boolean' then Config.ShowMapName = true end
 
     if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(550, 600) end
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
@@ -3176,7 +3175,6 @@ function Library:CreateWindow(...)
         Text = 'Loading...',
         TextColor3 = Library.AccentColor,
         TextXAlignment = Enum.TextXAlignment.Right,
-        Visible = Config.ShowMapName,
         ZIndex = 1,
         Parent = Inner;
     });
