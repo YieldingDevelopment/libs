@@ -66,8 +66,8 @@ Library.KeyPickerList = {};
 
 Library.BlurEffect = Instance.new("BlurEffect")
 Library.BlurEffect.Name = "LinoriaBlur"
-Library.BlurEffect.Size = 0
-Library.BlurEffect.Enabled = false
+Library.BlurEffect.Size = 13
+Library.BlurEffect.Enabled = true
 pcall(function() Library.BlurEffect.Parent = Lighting end)
 
 function Library:UpdateBlur()
@@ -2359,9 +2359,11 @@ do
             Values = Info.Values;
             Value = Info.Multi and {};
             Multi = Info.Multi;
+            
             Type = 'Dropdown';
             SpecialType = Info.SpecialType;
             Callback = Info.Callback or function(Value) end;
+
         };
 
         local Groupbox = self;
