@@ -76,6 +76,25 @@ function Library:UpdateBlur()
             Library.BlurEffect.Enabled = true
             TweenService:Create(Library.BlurEffect, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {Size = Library.BlurSize}):Play()
         end
+        
+        local function GetValueImage(Value)
+            if not Value then
+                return nil
+            end
+
+            local ValueImage = nil
+            if Dropdown.SpecialType == 'Player' and Info.EnablePlayerImages == true then
+                if type(Value) == 'table' and Value.IsA and Value:IsA('Player') then
+                    ValueImage = { Url = string.format('rbxthumb://type=AvatarHeadShot&id=%s&w=48&h=48', tostring(Value.UserId)) }
+                end
+            else
+                if Info.ValueImages and Info.ValueImages[Value] then
+                    ValueImage = Library:GetCustomIcon(Info.ValueImages[Value])
+                end
+            end
+
+            return ValueImage
+        end
     else
         local tween = TweenService:Create(Library.BlurEffect, TweenInfo.new(0.2, Enum.EasingStyle.Linear), {Size = 0})
         tween:Play()
