@@ -1544,23 +1544,41 @@ do
 
         return unpack(Boxes)
     end;
-    function Funcs:AddLabel(Text, DoesWrap)
-        local Label = {};
+    function Funcs:AddLabel(...)
+        local First = select(1, ...)
+        local Second = select(2, ...)
 
+        local Data = {}
+        if type(First) == 'table' or type(Second) == 'table' then
+            local Params = type(First) == 'table' and First or Second
+            Data.Text = Params.Text or ''
+            Data.DoesWrap = Params.DoesWrap or false
+            Data.Size = Params.Size or Library.FontSize
+            Data.Visible = (Params.Visible == nil) and true or Params.Visible
+            Data.Idx = type(Second) == 'table' and First or Params.Idx
+        else
+            Data.Text = First or ''
+            Data.DoesWrap = Second or false
+            Data.Size = Library.FontSize
+            Data.Visible = true
+            Data.Idx = select(3, ...) or nil
+        end
+
+        local Label = {};
         local Groupbox = self;
         local Container = Groupbox.Container;
 
         local TextLabel = Library:CreateLabel({
             Size = UDim2.new(1, -4, 0, 15);
-            TextSize = Library.FontSize;
-            Text = Text;
-            TextWrapped = DoesWrap or false,
+            TextSize = Data.Size;
+            Text = Data.Text;
+            TextWrapped = Data.DoesWrap or false,
             TextXAlignment = Enum.TextXAlignment.Left;
             ZIndex = 5;
             Parent = Container;
         });
-        if DoesWrap then
-            local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
+        if Data.DoesWrap then
+            local Y = select(2, Library:GetTextBounds(Data.Text, Library.Font, Data.Size, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
             TextLabel.Size = UDim2.new(1, -4, 0, Y)
         else
             Library:Create('UIListLayout', {
@@ -1577,20 +1595,26 @@ do
         function Label:SetText(Text)
             TextLabel.Text = Text
 
-            if DoesWrap then
-                local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
+            if Data.DoesWrap then
+                local Y = select(2, Library:GetTextBounds(Text, Library.Font, Data.Size, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
                 TextLabel.Size = UDim2.new(1, -4, 0, Y)
             end
 
             Groupbox:Resize();
         end
 
-        if (not DoesWrap) then
+        if (not Data.DoesWrap) then
             setmetatable(Label, BaseAddons);
         end
 
         Groupbox:AddBlank(5);
         Groupbox:Resize();
+
+        if Data.Idx then
+            Labels[Data.Idx] = Label
+        else
+            table.insert(Labels, Label)
+        end
 
         return Label;
     end;
@@ -2569,13 +2593,15 @@ do
 
             for Idx, Value in next, Values do
                 local FormattedValue = tostring(Value)
+                local skip = false
                 if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
-                    continue
+                    skip = true
                 end
-                local Table = {};
-                Count = Count + 1;
+                if not skip then
+                    local Table = {};
+                    Count = Count + 1;
 
-                local Button = Library:Create('Frame', {
+                    local Button = Library:Create('Frame', {
                     BackgroundColor3 = Library.MainColor;
                     BorderColor3 = Library.OutlineColor;
                     BorderMode = Enum.BorderMode.Middle;
@@ -2660,10 +2686,11 @@ do
                     end;
                 end);
 
-                Table:UpdateButton();
-                Dropdown:Display();
+                    Table:UpdateButton();
+                    Dropdown:Display();
 
-                Buttons[Button] = Table;
+                    Buttons[Button] = Table;
+                end
             end;
             Scrolling.CanvasSize = UDim2.fromOffset(0, (Count * 20) + 1);
 
