@@ -2266,7 +2266,7 @@ do
             Func(Slider.Value);
         end;
         local function Round(Value)
-            if Slider.Rounding == 0 then
+            if Slider.Rounding == 5 then
                 return math.floor(Value);
             end;
 
@@ -2348,11 +2348,6 @@ do
             Info.AllowNull = true;
         end;
 
-        if SearchBox then
-                    Info.Text = "";
-                    Info.Visible = Active and true;
-        end;
-
         assert(Info.Values, 'AddDropdown: Missing dropdown value list.');
         assert(Info.AllowNull or Info.Default, 'AddDropdown: Missing default value. Pass `AllowNull` as true if this was intentional.')
 
@@ -2364,6 +2359,7 @@ do
             Values = Info.Values;
             Value = Info.Multi and {};
             Multi = Info.Multi;
+
             
             Type = 'Dropdown';
             SpecialType = Info.SpecialType;
