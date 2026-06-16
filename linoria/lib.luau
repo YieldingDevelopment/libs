@@ -84,7 +84,7 @@ function Library:UpdateBlur()
 
             local ValueImage = nil
             if Dropdown.SpecialType == 'Player' and Info.EnablePlayerImages == true then
-                if type(Value) == 'table' and Value.IsA and Value:IsA('Player') then
+                if typeof(Value) == 'Instance' and Value:IsA('Player') then
                     ValueImage = { Url = string.format('rbxthumb://type=AvatarHeadShot&id=%s&w=48&h=48', tostring(Value.UserId)) }
                 end
             else
@@ -2553,7 +2553,7 @@ do
                             ValueImage = GetValueImage(Value)
                         end
 
-                        Str = Str .. (Info.FormatDisplayValue and tostring(Info.FormatDisplayValue(Value)) or tostring(Value)) .. ', '
+                        Str = Str .. ((typeof(Info.FormatDisplayValue) == 'function' and tostring(Info.FormatDisplayValue(Value))) or tostring(Value)) .. ', '
                     end
                 end
 
@@ -2562,7 +2562,7 @@ do
                 ValueImage = GetValueImage(Dropdown.Value)
                 Str = Dropdown.Value and tostring(Dropdown.Value) or ''
 
-                if Str ~= '' and Info.FormatDisplayValue then
+                if Str ~= '' and typeof(Info.FormatDisplayValue) == 'function' then
                     Str = tostring(Info.FormatDisplayValue(Str))
                 end
             end
@@ -2599,7 +2599,7 @@ do
             local Count = 0;
 
             for Idx, Value in next, Values do
-                local FormattedValue = tostring(Info.FormatListValue and Info.FormatListValue(Value) or Value)
+                local FormattedValue = tostring((typeof(Info.FormatListValue) == 'function' and Info.FormatListValue(Value)) or Value)
                 local skip = false
                 if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
                     skip = true
