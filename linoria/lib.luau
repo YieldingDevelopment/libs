@@ -3885,7 +3885,7 @@ if InputService.TouchEnabled then
             Parent           = Outer,
         })
         Library:AddToRegistry(AccentFrame, { BackgroundColor3 = 'AccentColor' })
-d
+
         local Inner = Library:Create('Frame', {
             Name             = name .. "Inner",
             BackgroundColor3 = Color3.fromRGB(8, 8, 12),
