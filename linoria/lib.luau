@@ -4004,6 +4004,7 @@ if InputService.TouchEnabled then
 end
 end
 end
+end
 
 getgenv().Library = Library
 return Library
