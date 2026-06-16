@@ -2266,7 +2266,7 @@ do
             Func(Slider.Value);
         end;
         local function Round(Value)
-            if Slider.Rounding == 5 then
+            if Slider.Rounding == 0 then
                 return math.floor(Value);
             end;
 
@@ -2359,8 +2359,7 @@ do
             Values = Info.Values;
             Value = Info.Multi and {};
             Multi = Info.Multi;
-
-            
+            Searchable = Info.Searchable;
             Type = 'Dropdown';
             SpecialType = Info.SpecialType;
             Callback = Info.Callback or function(Value) end;
