@@ -27,7 +27,7 @@ local Library = {
     Registry = {};
     RegistryMap = {};
 
-        HudRegistry = {};
+    HudRegistry = {};
 
     FontColor = Color3.fromRGB(255, 255, 255);
     MainColor = Color3.fromRGB(28, 28, 28);
@@ -84,9 +84,10 @@ function Library:UpdateBlur()
             if not Library.UseBlur then
                 Library.BlurEffect.Enabled = false
             end
-        end
-        getgenv().Library = Library
-        return Library
+        end)
+    end
+end
+
 function Library:SetFontSize(Size)
     Library.FontSize = Size
     for _, descendant in pairs(ScreenGui:GetDescendants()) do
@@ -1728,32 +1729,6 @@ do
 
         InitEvents(Button)
 
-        function Button:UpdateColors()
-            Button.Label.TextTransparency = Button.Disabled and 0.8 or 0.4
-            -- update registry mapping if present
-            if Library.RegistryMap[Button.Label] and Library.RegistryMap[Button.Label].Properties then
-                Library.RegistryMap[Button.Label].Properties.TextColor3 = Button.Disabled and 'BackgroundColor' or 'FontColor'
-            end
-        end
-
-        function Button:SetDisabled(Disabled)
-            Button.Disabled = Disabled
-            Button.Outer.Active = not Button.Disabled
-            Button:UpdateColors()
-        end
-
-        function Button:SetVisible(Visible)
-            Button.Visible = Visible
-            Button.Outer.Visible = Button.Visible
-            Groupbox:Resize()
-        end
-
-        function Button:SetText(Text)
-            Button.Text = Text
-            Button.Label.Text = Text
-            Groupbox:Resize()
-        end
-
         function Button:AddTooltip(tooltip)
             if type(tooltip) == 'string' then
                 Library:AddToolTip(tooltip, self.Outer)
@@ -1783,30 +1758,6 @@ do
 
             if type(SubButton.Tooltip) == 'string' then
                 SubButton:AddTooltip(SubButton.Tooltip)
-            end
-            function SubButton:UpdateColors()
-                SubButton.Label.TextTransparency = SubButton.Disabled and 0.8 or 0.4
-                if Library.RegistryMap[SubButton.Label] and Library.RegistryMap[SubButton.Label].Properties then
-                    Library.RegistryMap[SubButton.Label].Properties.TextColor3 = SubButton.Disabled and 'BackgroundColor' or 'FontColor'
-                end
-            end
-
-            function SubButton:SetDisabled(Disabled)
-                SubButton.Disabled = Disabled
-                SubButton.Outer.Active = not SubButton.Disabled
-                SubButton:UpdateColors()
-            end
-
-            function SubButton:SetVisible(Visible)
-                SubButton.Visible = Visible
-                SubButton.Outer.Visible = SubButton.Visible
-                Groupbox:Resize()
-            end
-
-            function SubButton:SetText(Text)
-                SubButton.Text = Text
-                SubButton.Label.Text = Text
-                Groupbox:Resize()
             end
 
             InitEvents(SubButton)
@@ -2440,21 +2391,6 @@ do
             ZIndex = 7;
             Parent = DropdownInner;
         });
-        local SearchBox
-        if Info.Searchable then
-            SearchBox = Library:Create('TextBox', {
-                BackgroundTransparency = 1;
-                PlaceholderText = 'Search...';
-                Position = UDim2.fromOffset(0, 0);
-                Size = UDim2.new(1, 0, 0, 18);
-                TextSize = Library.FontSize;
-                TextXAlignment = Enum.TextXAlignment.Left;
-                Visible = false;
-                ZIndex = 9;
-                Parent = DropdownInner;
-            });
-            Library:Create('UIPadding', { PaddingLeft = UDim.new(0, 6), Parent = SearchBox })
-        end
         Library:OnHighlight(DropdownOuter, DropdownOuter,
             { BorderColor3 = 'AccentColor' },
             { BorderColor3 = 'Black' }
@@ -2520,11 +2456,6 @@ do
             SortOrder = Enum.SortOrder.LayoutOrder;
             Parent = Scrolling;
         });
-        function Dropdown:UpdateColors()
-            ItemList.TextTransparency = Dropdown.Disabled and 0.8 or 0
-            DropdownArrow.ImageTransparency = Dropdown.Disabled and 0.5 or 0
-        end
-
         function Dropdown:Display()
             local Values = Dropdown.Values;
             local Str = '';
@@ -2542,7 +2473,6 @@ do
             end;
 
             ItemList.Text = (Str == '' and '--' or Str);
-            Dropdown:UpdateColors()
         end;
         function Dropdown:GetActiveValues()
             if Info.Multi then
@@ -2570,12 +2500,10 @@ do
             local Count = 0;
 
             for Idx, Value in next, Values do
-                local Formatted = tostring(Value)
-                if not (SearchBox and SearchBox.Text ~= '' and not Formatted:lower():find(SearchBox.Text:lower(), 1, true)) then
-                    local Table = {};
-                    Count = Count + 1;
+                local Table = {};
+                Count = Count + 1;
 
-                    local Button = Library:Create('Frame', {
+                local Button = Library:Create('Frame', {
                     BackgroundColor3 = Library.MainColor;
                     BorderColor3 = Library.OutlineColor;
                     BorderMode = Enum.BorderMode.Middle;
@@ -2680,24 +2608,15 @@ do
         end;
 
         function Dropdown:OpenDropdown()
-            if Dropdown.Disabled then return end
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
-            if SearchBox then
-                SearchBox.Text = ''
-                SearchBox.Visible = true
-            end
         end;
 
         function Dropdown:CloseDropdown()
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
-            if SearchBox then
-                SearchBox.Text = ''
-                SearchBox.Visible = false
-            end
         end;
 
         function Dropdown:OnChanged(Func)
@@ -2730,7 +2649,6 @@ do
         end;
 
         DropdownOuter.InputBegan:Connect(function(Input)
-            if Dropdown.Disabled then return end
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
                 if ListOuter.Visible then
                     Dropdown:CloseDropdown();
@@ -2752,34 +2670,6 @@ do
         end);
         Dropdown:BuildDropdownList();
         Dropdown:Display();
-
-        if SearchBox then
-            SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
-                Dropdown:BuildDropdownList()
-            end)
-        end
-
-        function Dropdown:SetVisible(Visible)
-            Dropdown.Visible = Visible
-            DropdownOuter.Visible = Dropdown.Visible
-            Groupbox:Resize()
-        end
-
-        function Dropdown:SetText(Text)
-            if DropdownLabel then
-                DropdownLabel.Text = Text or ''
-                DropdownLabel.Visible = not not Text
-                Groupbox:Resize()
-            end
-        end
-
-        function Dropdown:SetDisabled(Disabled)
-            Dropdown.Disabled = Disabled
-            if Dropdown.Disabled then
-                Dropdown:CloseDropdown()
-            end
-            Dropdown:UpdateColors()
-        end
 
         local Defaults = {}
 
@@ -4011,7 +3901,6 @@ if InputService.TouchEnabled then
         _origUpdate(self)
     end
 end
-end
+
 getgenv().Library = Library
-return Library
 return Library
