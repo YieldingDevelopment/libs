@@ -2568,13 +2568,15 @@ do
 
             for Idx, Value in next, Values do
                 local FormattedValue = tostring(Value)
+                local skip = false
                 if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
-                    continue
+                    skip = true
                 end
-                local Table = {};
-                Count = Count + 1;
+                if not skip then
+                    local Table = {};
+                    Count = Count + 1;
 
-                local Button = Library:Create('Frame', {
+                    local Button = Library:Create('Frame', {
                     BackgroundColor3 = Library.MainColor;
                     BorderColor3 = Library.OutlineColor;
                     BorderMode = Enum.BorderMode.Middle;
@@ -2659,10 +2661,11 @@ do
                     end;
                 end);
 
-                Table:UpdateButton();
-                Dropdown:Display();
+                    Table:UpdateButton();
+                    Dropdown:Display();
 
-                Buttons[Button] = Table;
+                    Buttons[Button] = Table;
+                end
             end;
             Scrolling.CanvasSize = UDim2.fromOffset(0, (Count * 20) + 1);
 
@@ -2682,12 +2685,20 @@ do
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
+            if SearchBox then
+                SearchBox.Text = ''
+                SearchBox.Visible = true
+            end
         end;
 
         function Dropdown:CloseDropdown()
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
+            if SearchBox then
+                SearchBox.Text = ''
+                SearchBox.Visible = false
+            end
         end;
 
         function Dropdown:OnChanged(Func)
