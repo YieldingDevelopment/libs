@@ -429,7 +429,12 @@ function Library:GetTextBounds(Text, Font, Size, Resolution)
         local Params = Instance.new("GetTextBoundsParams")
         Params.Text = Text
         Params.RichText = true
-        Params.Font = Font
+        -- Convert Enum.Font (EnumItem) to a Font object when necessary
+        if (typeof or type)(Font) == "EnumItem" and Font.fromEnum then
+            Params.Font = Font.fromEnum(Font)
+        else
+            Params.Font = Font
+        end
         Params.Size = Size
         Params.Width = Resolution
 
@@ -462,7 +467,11 @@ function Library:GetTextBounds(Text, Font, Size, Resolution)
     local Params2 = Instance.new("GetTextBoundsParams")
     Params2.Text = Text
     Params2.RichText = true
-    Params2.Font = Font
+    if (typeof or type)(Font) == "EnumItem" and Font.fromEnum then
+        Params2.Font = Font.fromEnum(Font)
+    else
+        Params2.Font = Font
+    end
     Params2.Size = Size
     Params2.Width = workspace and workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize and (workspace.CurrentCamera.ViewportSize.X - 32) or 1920
     local Bounds3 = TextService:GetTextBoundsAsync(Params2)
