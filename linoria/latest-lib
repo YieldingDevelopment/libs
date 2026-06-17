@@ -429,8 +429,13 @@ function Library:GetTextBounds(Text, Font, Size, Resolution)
         resolutionVector = Resolution or (workspace and workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize) or Vector2.new(1920, 1080)
     end
 
+    local fontParam = Font
+    if (typeof or type)(fontParam) == "EnumItem" and fontParam.fromEnum then
+        fontParam = fontParam.fromEnum(fontParam)
+    end
+
     local ok, Bounds = pcall(function()
-        return TextService:GetTextSize(Text, Size, Font, resolutionVector)
+        return TextService:GetTextSize(Text, Size, fontParam, resolutionVector)
     end)
 
     if ok and Bounds then
@@ -439,7 +444,7 @@ function Library:GetTextBounds(Text, Font, Size, Resolution)
 
     -- Fallback: try with a very large width
     local ok2, Bounds2 = pcall(function()
-        return TextService:GetTextSize(Text, Size, Font, Vector2.new(1920, math.huge))
+        return TextService:GetTextSize(Text, Size, fontParam, Vector2.new(1920, math.huge))
     end)
     if ok2 and Bounds2 then
         return Bounds2.X, Bounds2.Y
