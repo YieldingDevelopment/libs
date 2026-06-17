@@ -2285,8 +2285,12 @@ do
                 DisplayLabel.Text = string.format('%s', formatted or (Slider.Value .. Suffix))
             else
                 local formatted = safeFormatDisplay(Slider, Slider.Value)
-                local left = formatted or (Slider.Value .. Suffix)
-                DisplayLabel.Text = string.format('%s/%s', left, Slider.Max .. Suffix);
+                if formatted then
+                    -- if custom formatter returns a full string, use it as-is
+                    DisplayLabel.Text = formatted
+                else
+                    DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix)
+                end
             end
 
             local X = math.ceil(Library:MapValue(Slider.Value, Slider.Min, Slider.Max, 0, Slider.MaxSize));
