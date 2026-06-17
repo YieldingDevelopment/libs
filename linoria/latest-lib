@@ -2516,24 +2516,27 @@ do
                 BackgroundTransparency = 1;
                 ClearTextOnFocus = false;
                 Font = Library.Font;
-                PlaceholderColor3 = Library.FontColor;
+                PlaceholderColor3 = Library:GetDarkerColor(Library.FontColor);
                 PlaceholderText = 'Search...';
                 Position = UDim2.fromOffset(5, 0);
                 Size = UDim2.new(1, -24, 1, 0);
                 Text = '';
-                TextColor3 = Library.FontColor;
+                TextColor3 = Library:GetDarkerColor(Library.FontColor);
                 TextSize = Library.FontSize;
-                TextStrokeTransparency = 0;
+                TextStrokeTransparency = 1;
                 TextXAlignment = Enum.TextXAlignment.Left;
                 Visible = false;
                 ZIndex = 7;
                 Parent = DropdownInner;
             });
             Library:AddToRegistry(SearchBox, {
-                PlaceholderColor3 = 'FontColor';
-                TextColor3 = 'FontColor';
+                PlaceholderColor3 = function()
+                    return Library:GetDarkerColor(Library.FontColor)
+                end;
+                TextColor3 = function()
+                    return Library:GetDarkerColor(Library.FontColor)
+                end;
             });
-            Library:ApplyTextStroke(SearchBox);
 
             SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
                 Dropdown:BuildDropdownList();
@@ -2758,6 +2761,10 @@ do
                                         Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
 
                                         Library:AttemptSave();
+
+                                        if not Info.Multi then
+                                            Dropdown:CloseDropdown();
+                                        end
                                     end;
                                 end;
                             end);
@@ -2792,7 +2799,7 @@ do
                     end
                 end)
             end
-            ItemList.Visible = false;
+            ItemList.Visible = not SearchBox or Info.Multi;
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
