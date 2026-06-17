@@ -2510,6 +2510,7 @@ do
             ZIndex = 7;
             Parent = DropdownInner;
         });
+        local ListOuter
         local SearchBox
         if Info.Searchable then
             SearchBox = Library:Create('TextBox', {
@@ -2584,7 +2585,7 @@ do
         end
 
         local MAX_DROPDOWN_ITEMS = 8;
-        local ListOuter = Library:Create('Frame', {
+        ListOuter = Library:Create('Frame', {
             BackgroundColor3 = Color3.new(0, 0, 0);
             BorderColor3 = Color3.new(0, 0, 0);
             ZIndex = 20;
