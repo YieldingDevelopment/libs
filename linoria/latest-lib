@@ -421,8 +421,21 @@ function Library:MapValue(Value, MinA, MaxA, MinB, MaxB)
 end;
 
 function Library:GetTextBounds(Text, Font, Size, Resolution)
-    local Bounds = TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1920, 1080))
-    return Bounds.X, Bounds.Y
+    -- Support both a numeric width (used with GetTextBoundsAsync) and a Vector2 resolution (used with GetTextSize).
+    if typeof(Resolution) == "number" then
+        local Params = Instance.new("GetTextBoundsParams")
+        Params.Text = Text
+        Params.RichText = true
+        Params.Font = Font
+        Params.Size = Size
+        Params.Width = Resolution
+
+        local Bounds = TextService:GetTextBoundsAsync(Params)
+        return Bounds.X, Bounds.Y
+    else
+        local Bounds = TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1920, 1080))
+        return Bounds.X, Bounds.Y
+    end
 end;
 
 function Library:GetDarkerColor(Color)
