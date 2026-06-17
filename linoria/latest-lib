@@ -2400,10 +2400,17 @@ do
             SpecialType = Info.SpecialType;
             Callback = Info.Callback or function(Value) end;
             Disabled = Info.Disabled or false;
-
         };
 
-        local Groupbox = self;
+        -- normalize DisabledValues to always be a table (allow single value)
+        local dv = Info.DisabledValues
+        if dv == nil then
+            Dropdown.DisabledValues = {}
+        elseif type(dv) ~= 'table' then
+            Dropdown.DisabledValues = { dv }
+        else
+            Dropdown.DisabledValues = dv
+        end
         local Container = Groupbox.Container;
 
         local RelativeOffset = 0;
@@ -2847,25 +2854,15 @@ do
         end
 
         if next(Defaults) then
-            if Info.Multi then
-                local n = {}
-                for i = 1, #Defaults do
-                    local Index = Defaults[i]
-                    local Value = Dropdown.Values[Index]
-                    if Value and not table.find(Dropdown.DisabledValues, Value) then
-                        n[Value] = true
-                    end
+            for i = 1, #Defaults do
+                local Index = Defaults[i]
+                if Info.Multi then
+                    Dropdown.Value[Dropdown.Values[Index]] = true
+                else
+                    Dropdown.Value = Dropdown.Values[Index];
                 end
-                Dropdown:SetValue(n)
-            else
-                for i = 1, #Defaults do
-                    local Index = Defaults[i]
-                    local Value = Dropdown.Values[Index]
-                    if Value and not table.find(Dropdown.DisabledValues, Value) then
-                        Dropdown:SetValue(Value)
-                        break
-                    end
-                end
+
+                if (not Info.Multi) then break end
             end
 
             Dropdown:BuildDropdownList();
