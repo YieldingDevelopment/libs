@@ -19,7 +19,6 @@ ScreenGui.Parent = CoreGui;
 
 local Toggles = {};
 local Options = {};
-local Labels = {};
 
 getgenv().Toggles = Toggles;
 getgenv().Options = Options;
@@ -420,45 +419,9 @@ function Library:MapValue(Value, MinA, MaxA, MinB, MaxB)
     return (1 - ((Value - MinA) / (MaxA - MinA))) * MinB + ((Value - MinA) / (MaxA - MinA)) * MaxB;
 end;
 
-function Library:GetTextBounds(Text, FontArg, Size, Resolution)
-    -- Normalize resolution into a Vector2 for TextService:GetTextSize.
-    local resolutionVector
-    if (typeof or type)(Resolution) == "number" then
-        resolutionVector = Vector2.new(Resolution, math.huge)
-    else
-        resolutionVector = Resolution or (workspace and workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize) or Vector2.new(1920, 1080)
-    end
-
-    local fontParam = FontArg
-    if (typeof or type)(fontParam) == "EnumItem" then
-        -- If an Enum.Font was passed and we cannot reliably convert it to a Font
-        -- object in this environment, return an approximate measurement to avoid
-        -- calling TextService with an incompatible parameter.
-        local approxWidth = (#tostring(Text) * Size) * 0.5
-        local approxHeight = Size * 1.2
-        return approxWidth, approxHeight
-    end
-
-    local ok, Bounds = pcall(function()
-        return TextService:GetTextSize(Text, Size, fontParam, resolutionVector)
-    end)
-
-    if ok and Bounds then
-        return Bounds.X, Bounds.Y
-    end
-
-    -- Fallback: try with a very large width
-    local ok2, Bounds2 = pcall(function()
-        return TextService:GetTextSize(Text, Size, fontParam, Vector2.new(1920, math.huge))
-    end)
-    if ok2 and Bounds2 then
-        return Bounds2.X, Bounds2.Y
-    end
-
-    -- As a last resort, return a rough estimate based on text length
-    local approxWidth = (#tostring(Text) * Size) / 2
-    local approxHeight = Size * 1.2
-    return approxWidth, approxHeight
+function Library:GetTextBounds(Text, Font, Size, Resolution)
+    local Bounds = TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1920, 1080))
+    return Bounds.X, Bounds.Y
 end;
 
 function Library:GetDarkerColor(Color)
@@ -1548,7 +1511,6 @@ do
             })
 
             Box.Container = BoxContainer
-            Box.Elements = {}
             setmetatable(Box, BaseGroupbox)
 
             function Box:Resize()
@@ -1579,112 +1541,56 @@ do
 
         return unpack(Boxes)
     end;
-function Funcs:AddLabel(...)
-    local Data = {}
-    local Addons = {}
+    function Funcs:AddLabel(Text, DoesWrap)
+        local Label = {};
 
-    local First = select(1, ...)
-    local Second = select(2, ...)
+        local Groupbox = self;
+        local Container = Groupbox.Container;
 
-    if type(First) == "table" or type(Second) == "table" then
-        local Params = (type(First) == "table" and First) or Second
-
-        Data.Text = Params.Text or ""
-        Data.DoesWrap = Params.DoesWrap or false
-        Data.Size = Params.Size or Library.FontSize
-        Data.Visible = (Params.Visible == nil) and true or Params.Visible
-        Data.Idx = (type(Second) == "table") and First or nil
-    else
-        Data.Text = First or ""
-        Data.DoesWrap = Second or false
-        Data.Size = Library.FontSize
-        Data.Visible = true
-        Data.Idx = select(3, ...) or nil
-    end
-
-    local Groupbox = self
-    local Container = Groupbox.Container
-
-    local Label = {
-        Text = Data.Text,
-        DoesWrap = Data.DoesWrap,
-        Addons = Addons,
-        Visible = Data.Visible,
-        Type = "Label",
-    }
-
-    local TextLabel = Library:CreateLabel({
-        Size = UDim2.new(1, -4, 0, Data.DoesWrap and 0 or 15),
-        TextSize = Data.Size,
-        Text = Label.Text,
-        TextWrapped = Label.DoesWrap,
-        TextXAlignment = Groupbox.IsKeyTab and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left,
-        ZIndex = 5,
-        Parent = Container,
-    });
-
-    function Label:SetVisible(Visible)
-        Label.Visible = Visible
-        TextLabel.Visible = Label.Visible
-        Groupbox:Resize()
-    end
-
-    function Label:SetText(Text)
-        Label.Text = Text
-        TextLabel.Text = Text
-
-        if Label.DoesWrap then
-            local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
-            TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
+        local TextLabel = Library:CreateLabel({
+            Size = UDim2.new(1, -4, 0, 15);
+            TextSize = Library.FontSize;
+            Text = Text;
+            TextWrapped = DoesWrap or false,
+            TextXAlignment = Enum.TextXAlignment.Left;
+            ZIndex = 5;
+            Parent = Container;
+        });
+        if DoesWrap then
+            local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
+            TextLabel.Size = UDim2.new(1, -4, 0, Y)
+        else
+            Library:Create('UIListLayout', {
+                Padding = UDim.new(0, 4);
+                FillDirection = Enum.FillDirection.Horizontal;
+                HorizontalAlignment = Enum.HorizontalAlignment.Right;
+                SortOrder = Enum.SortOrder.LayoutOrder;
+                Parent = TextLabel;
+            });
         end
 
-        Groupbox:Resize()
-    end
+        Label.TextLabel = TextLabel;
+        Label.Container = Container;
+        function Label:SetText(Text)
+            TextLabel.Text = Text
 
-    if Label.DoesWrap then
-        local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
-        TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
+            if DoesWrap then
+                local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
+                TextLabel.Size = UDim2.new(1, -4, 0, Y)
+            end
 
-        local Last = TextLabel.AbsoluteSize
-        TextLabel:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-            if TextLabel.AbsoluteSize == Last then return end
-            local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
-            TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
-            Last = TextLabel.AbsoluteSize
-            Groupbox:Resize()
-        end)
-    else
-        Library:Create('UIListLayout', {
-            FillDirection = Enum.FillDirection.Horizontal,
-            HorizontalAlignment = Enum.HorizontalAlignment.Right,
-            Padding = UDim.new(0, 4),
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Parent = TextLabel,
-        });
-    end
+            Groupbox:Resize();
+        end
 
-    Groupbox:Resize()
+        if (not DoesWrap) then
+            setmetatable(Label, BaseAddons);
+        end
 
-    Label.TextLabel = TextLabel
-    Label.Container = Container
-    if not Data.DoesWrap then
-        setmetatable(Label, BaseAddons)
-    end
+        Groupbox:AddBlank(5);
+        Groupbox:Resize();
 
-    Label.Holder = TextLabel
-    Groupbox.Elements = Groupbox.Elements or {}
-    table.insert(Groupbox.Elements, Label)
-
-    Labels = Labels or {}
-    if Data.Idx then
-        Labels[Data.Idx] = Label
-    else
-        table.insert(Labels, Label)
-    end
-
-    return Label
-end
-
+        return Label;
+    end;
     function Funcs:AddButton(...)
         local Button = {};
         local function ProcessButtonParams(Class, Obj, ...)
@@ -2511,6 +2417,20 @@ end
         if not Groupbox or type(Groupbox) ~= 'table' or not Groupbox.Container then
             error('AddDropdown must be called as a method on a Groupbox object (use Groupbox:AddDropdown).')
         end
+
+        local SEARCH_BOX_HEIGHT = 24;
+
+        local function SafeFormatDisplayValue(Value)
+            if type(Info.FormatDisplayValue) == 'function' then
+                local ok, res = pcall(Info.FormatDisplayValue, Value)
+                if ok and res ~= nil then
+                    return tostring(res)
+                end
+            end
+
+            return nil
+        end
+
         -- normalize DisabledValues to always be a table (allow single value)
         local dv = Info.DisabledValues
         if dv == nil then
@@ -2604,6 +2524,7 @@ end
             Library:AddToolTip(Info.Tooltip, DropdownOuter)
         end
 
+        local SearchBox
         local MAX_DROPDOWN_ITEMS = 8;
         local ListOuter = Library:Create('Frame', {
             BackgroundColor3 = Color3.new(0, 0, 0);
@@ -2617,7 +2538,8 @@ end
         end;
 
         local function RecalculateListSize(YSize)
-            ListOuter.Size = UDim2.fromOffset(DropdownOuter.AbsoluteSize.X, YSize or (MAX_DROPDOWN_ITEMS * 20 + 2))
+            local SearchOffset = SearchBox and SEARCH_BOX_HEIGHT or 0
+            ListOuter.Size = UDim2.fromOffset(DropdownOuter.AbsoluteSize.X, (YSize or (MAX_DROPDOWN_ITEMS * 20 + 2)) + SearchOffset)
         end;
         RecalculateListPosition();
         RecalculateListSize();
@@ -2662,7 +2584,6 @@ end
             Parent = Scrolling;
         });
         -- optional search box for dropdowns
-        local SearchBox
         if Info.Searchable then
             SearchBox = Library:Create('TextBox', {
                 BackgroundTransparency = 1;
@@ -2675,6 +2596,8 @@ end
                 ZIndex = 22;
                 Parent = ListInner;
             });
+            Scrolling.Position = UDim2.fromOffset(0, SEARCH_BOX_HEIGHT);
+            Scrolling.Size = UDim2.new(1, 0, 1, -SEARCH_BOX_HEIGHT);
             -- rebuild list when search text changes
             SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
                 Dropdown:BuildDropdownList();
@@ -2684,20 +2607,10 @@ end
             local Values = Dropdown.Values;
             local Str = '';
 
-            local function safeFormatValue(v)
-                if type(Info.FormatDisplayValue) == 'function' then
-                    local ok, res = pcall(Info.FormatDisplayValue, v)
-                    if ok and res ~= nil then
-                        return tostring(res)
-                    end
-                end
-                return nil
-            end
-
             if Info.Multi then
                 for Idx, Value in next, Values do
                     if Dropdown.Value[Value] then
-                        local formatted = safeFormatValue(Value)
+                        local formatted = SafeFormatDisplayValue(Value)
                         Str = Str .. (formatted or tostring(Value)) .. ', '
                     end;
                 end;
@@ -2705,7 +2618,7 @@ end
                 Str = Str:sub(1, #Str - 2);
             else
                 if Dropdown.Value then
-                    local formatted = safeFormatValue(Dropdown.Value)
+                    local formatted = SafeFormatDisplayValue(Dropdown.Value)
                     Str = formatted or tostring(Dropdown.Value)
                 else
                     Str = ''
@@ -2730,6 +2643,7 @@ end
         function Dropdown:BuildDropdownList()
             local Values = Dropdown.Values;
             local Buttons = {};
+            local SearchText = SearchBox and (SearchBox.Text or ''):lower() or '';
 
             for _, Element in next, Scrolling:GetChildren() do
                 if not Element:IsA('UIListLayout') then
@@ -2740,10 +2654,11 @@ end
             local Count = 0;
 
             for Idx, Value in next, Values do
-                        local FormattedValue = tostring(Value)
+                        local formattedValueText = SafeFormatDisplayValue(Value)
+                        local FormattedValue = formattedValueText or tostring(Value)
                         local skip = false
 
-                        if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
+                        if SearchText ~= '' and not FormattedValue:lower():find(SearchText, 1, true) then
                             skip = true
                         end
 
@@ -2766,13 +2681,6 @@ end
                                 BackgroundColor3 = 'MainColor';
                                 BorderColor3 = 'OutlineColor';
                             });
-                            local formattedValueText = nil
-                            if type(Info.FormatDisplayValue) == 'function' then
-                                local ok, res = pcall(Info.FormatDisplayValue, Value)
-                                if ok and res ~= nil then
-                                    formattedValueText = tostring(res)
-                                end
-                            end
 
                             local ButtonLabel = Library:CreateLabel({
                                 Active = false;
@@ -2870,12 +2778,19 @@ end
         end;
 
         function Dropdown:OpenDropdown()
+            if SearchBox then
+                SearchBox.Visible = true;
+                SearchBox.Text = '';
+            end
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
         end;
 
         function Dropdown:CloseDropdown()
+            if SearchBox then
+                SearchBox.Visible = false;
+            end
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
@@ -3080,7 +2995,6 @@ end
         end;
 
         Depbox.Container = Frame;
-        Depbox.Elements = {};
 
         setmetatable(Depbox, BaseGroupbox);
 
@@ -3758,9 +3672,6 @@ function Library:CreateWindow(...)
             end;
 
             Groupbox.Container = Container;
-            Groupbox.Elements = {};
-            setmetatable(Groupbox, BaseGroupbox);
-            Groupbox.Elements = {};
             setmetatable(Groupbox, BaseGroupbox);
             Groupbox:AddBlank(3);
             Groupbox:Resize();
@@ -3931,7 +3842,6 @@ function Library:CreateWindow(...)
                 end);
 
                 Tab.Container = Container;
-                Tab.Elements = {};
                 Tabbox.Tabs[Name] = Tab;
 
                 setmetatable(Tab, BaseGroupbox);
