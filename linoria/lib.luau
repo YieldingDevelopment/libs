@@ -1552,24 +1552,85 @@ do
 
         return unpack(Boxes)
     end;
-    function Funcs:AddLabel(Text, DoesWrap)
-        local Label = {};
+    function Funcs:AddLabel(...)
+        local Data = {}
+        local Addons = {}
 
-        local Groupbox = self;
-        local Container = Groupbox.Container;
+        local First = select(1, ...)
+        local Second = select(2, ...)
+
+        if type(First) == 'table' or type(Second) == 'table' then
+            local Params = (type(First) == 'table' and First) or Second
+
+            Data.Text = Params.Text or ''
+            Data.DoesWrap = Params.DoesWrap or false
+            Data.Size = Params.Size or Library.FontSize
+            Data.Visible = if Params.Visible == nil then true else Params.Visible
+            Data.Idx = (type(Second) == 'table' and First) or nil
+        else
+            Data.Text = First or ''
+            Data.DoesWrap = Second or false
+            Data.Size = Library.FontSize
+            Data.Visible = true
+            Data.Idx = select(3, ...) or nil
+        end
+
+        local Groupbox = self
+        local Container = Groupbox.Container
+
+        local Label = {
+            Text = Data.Text,
+            DoesWrap = Data.DoesWrap,
+
+            Addons = Addons,
+
+            Visible = Data.Visible,
+            Type = 'Label',
+        }
 
         local TextLabel = Library:CreateLabel({
-            Size = UDim2.new(1, -4, 0, 15);
-            TextSize = Library.FontSize;
-            Text = Text;
-            TextWrapped = DoesWrap or false,
+            BackgroundTransparency = 1;
+            Size = UDim2.new(1, -4, 0, 18);
+            Text = Label.Text;
+            TextSize = Data.Size;
+            TextWrapped = Label.DoesWrap;
             TextXAlignment = Enum.TextXAlignment.Left;
-            ZIndex = 5;
             Parent = Container;
-        });
-        if DoesWrap then
-            local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
-            TextLabel.Size = UDim2.new(1, -4, 0, Y)
+        })
+
+        function Label:SetVisible(Visible)
+            Label.Visible = Visible
+
+            TextLabel.Visible = Label.Visible
+            Groupbox:Resize()
+        end
+
+        function Label:SetText(Text)
+            Label.Text = Text
+            TextLabel.Text = Text
+
+            if Label.DoesWrap then
+                local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+                TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
+            end
+
+            Groupbox:Resize()
+        end
+
+        if Label.DoesWrap then
+            local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+            TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
+
+            local Last = TextLabel.AbsoluteSize
+            TextLabel:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
+                if TextLabel.AbsoluteSize == Last then return end
+
+                local _, Y = Library:GetTextBounds(Label.Text, TextLabel.Font, TextLabel.TextSize, TextLabel.AbsoluteSize.X)
+                TextLabel.Size = UDim2.new(1, -4, 0, Y + 4)
+
+                Last = TextLabel.AbsoluteSize
+                Groupbox:Resize()
+            end)
         else
             Library:Create('UIListLayout', {
                 Padding = UDim.new(0, 4);
@@ -1580,27 +1641,18 @@ do
             });
         end
 
-        Label.TextLabel = TextLabel;
-        Label.Container = Container;
-        function Label:SetText(Text)
-            TextLabel.Text = Text
-
-            if DoesWrap then
-                local Y = select(2, Library:GetTextBounds(Text, Library.Font, Library.FontSize, Vector2.new(TextLabel.AbsoluteSize.X, math.huge)))
-                TextLabel.Size = UDim2.new(1, -4, 0, Y)
-            end
-
-            Groupbox:Resize();
+        if Data.Idx then
+            Options[Data.Idx] = Label
         end
 
-        if (not DoesWrap) then
+        if (not Label.DoesWrap) then
             setmetatable(Label, BaseAddons);
         end
 
-        Groupbox:AddBlank(5);
-        Groupbox:Resize();
+        Groupbox:AddBlank(5)
+        Groupbox:Resize()
 
-        return Label;
+        return Label
     end;
     function Funcs:AddButton(...)
         local Button = {};
