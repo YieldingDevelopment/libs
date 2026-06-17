@@ -222,7 +222,15 @@ function Library:CreateLabel(Properties, IsHud)
     Library:AddToRegistry(_Instance, {
         TextColor3 = 'FontColor';
     }, IsHud);
-    return Library:Create(_Instance, Properties);
+    local props = Properties or {}
+
+    -- Support DoesWrap/TextWrapped option (enable wrapping; size handled by caller)
+    if props.DoesWrap or props.TextWrapped then
+        _Instance.TextWrapped = true
+        -- leave sizing to callers (some code calculates and sets Size)
+    end
+
+    return Library:Create(_Instance, props);
 end;
 
 function Library:MakeDraggable(Instance, Cutoff, IsWindow)
