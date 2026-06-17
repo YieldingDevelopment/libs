@@ -1473,6 +1473,9 @@ do
     local Funcs = {};
     function Funcs:AddBlank(Size)
         local Groupbox = self;
+        if not Groupbox or type(Groupbox) ~= 'table' or not Groupbox.Container then
+            error('AddDropdown must be called as a method on a Groupbox object (use Groupbox:AddDropdown).')
+        end
         local Container = Groupbox.Container;
         Library:Create('Frame', {
             BackgroundTransparency = 1;
@@ -2185,6 +2188,7 @@ do
             Type = 'Slider';
             Callback = Info.Callback or function(Value) end;
             Disabled = Info.Disabled or false;
+            DisabledValues = Info.DisabledValues or {};
         };
 
         local Groupbox = self;
@@ -2399,10 +2403,21 @@ do
             SpecialType = Info.SpecialType;
             Callback = Info.Callback or function(Value) end;
             Disabled = Info.Disabled or false;
-
         };
 
         local Groupbox = self;
+        if not Groupbox or type(Groupbox) ~= 'table' or not Groupbox.Container then
+            error('AddDropdown must be called as a method on a Groupbox object (use Groupbox:AddDropdown).')
+        end
+        -- normalize DisabledValues to always be a table (allow single value)
+        local dv = Info.DisabledValues
+        if dv == nil then
+            Dropdown.DisabledValues = {}
+        elseif type(dv) ~= 'table' then
+            Dropdown.DisabledValues = { dv }
+        else
+            Dropdown.DisabledValues = dv
+        end
         local Container = Groupbox.Container;
 
         local RelativeOffset = 0;
@@ -2607,107 +2622,112 @@ do
             local Count = 0;
 
             for Idx, Value in next, Values do
-                local FormattedValue = tostring(Value)
-                local skip = false
-                if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
-                    skip = true
-                end
-                if not skip then
-                    local Table = {};
-                    Count = Count + 1;
+                        local FormattedValue = tostring(Value)
+                        local skip = false
 
-                    local Button = Library:Create('Frame', {
-                    BackgroundColor3 = Library.MainColor;
-                    BorderColor3 = Library.OutlineColor;
-                    BorderMode = Enum.BorderMode.Middle;
-                    Size = UDim2.new(1, -1, 0, 20);
-                    ZIndex = 23;
-                        Active = not Dropdown.Disabled,
-                    Parent = Scrolling;
-                });
-                Library:AddToRegistry(Button, {
-                    BackgroundColor3 = 'MainColor';
-                    BorderColor3 = 'OutlineColor';
-                });
-                local ButtonLabel = Library:CreateLabel({
-                    Active = false;
-                    Size = UDim2.new(1, -6, 1, 0);
-                    Position = UDim2.new(0, 6, 0, 0);
-                    TextSize = Library.FontSize;
-                    Text = Value;
-                    TextXAlignment = Enum.TextXAlignment.Left;
-                    ZIndex = 25;
-                    Parent = Button;
-                });
-                ButtonLabel.TextTransparency = Dropdown.Disabled and 0.8 or 0
+                        if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
+                            skip = true
+                        end
 
-                Library:OnHighlight(Button, Button,
-                    { BorderColor3 = 'AccentColor', ZIndex = 24 },
-                    { BorderColor3 = 'OutlineColor', ZIndex = 23 }
-                );
-                local Selected;
+                        if not skip then
+                            local Table = {};
+                            Count = Count + 1;
 
-                if Info.Multi then
-                    Selected = Dropdown.Value[Value];
-                else
-                    Selected = Dropdown.Value == Value;
-                end;
+                            local IsValueDisabled = table.find(Dropdown.DisabledValues or {}, Value)
 
-                function Table:UpdateButton()
-                    if Info.Multi then
-                        Selected = Dropdown.Value[Value];
-                    else
-                        Selected = Dropdown.Value == Value;
-                    end;
+                            local Button = Library:Create('Frame', {
+                                BackgroundColor3 = Library.MainColor;
+                                BorderColor3 = Library.OutlineColor;
+                                BorderMode = Enum.BorderMode.Middle;
+                                Size = UDim2.new(1, -1, 0, 20);
+                                ZIndex = 23;
+                                Active = not (Dropdown.Disabled or IsValueDisabled),
+                                Parent = Scrolling;
+                            });
+                            Library:AddToRegistry(Button, {
+                                BackgroundColor3 = 'MainColor';
+                                BorderColor3 = 'OutlineColor';
+                            });
+                            local ButtonLabel = Library:CreateLabel({
+                                Active = false;
+                                Size = UDim2.new(1, -6, 1, 0);
+                                Position = UDim2.new(0, 6, 0, 0);
+                                TextSize = Library.FontSize;
+                                Text = Value;
+                                TextXAlignment = Enum.TextXAlignment.Left;
+                                ZIndex = 25;
+                                Parent = Button;
+                            });
 
-                    ButtonLabel.TextColor3 = Selected and Library.AccentColor or Library.FontColor;
-                    Library.RegistryMap[ButtonLabel].Properties.TextColor3 = Selected and 'AccentColor' or 'FontColor';
-                end;
-                ButtonLabel.InputBegan:Connect(function(Input)
-                    if Dropdown.Disabled then return end
-                    if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
-                        local Try = not Selected;
+                                ButtonLabel.TextTransparency = (Dropdown.Disabled or IsValueDisabled) and 0.8 or 0
 
-                        if Dropdown:GetActiveValues() == 1 and (not Try) and (not Info.AllowNull) then
-                        else
+                            Library:OnHighlight(Button, Button,
+                                { BorderColor3 = 'AccentColor', ZIndex = 24 },
+                                { BorderColor3 = 'OutlineColor', ZIndex = 23 }
+                            );
+                            local Selected;
+
                             if Info.Multi then
-                                Selected = Try;
-
-                                if Selected then
-                                    Dropdown.Value[Value] = true;
-                                else
-                                    Dropdown.Value[Value] = nil;
-                                end;
+                                Selected = Dropdown.Value[Value];
                             else
-                                Selected = Try;
-
-                                if Selected then
-                                    Dropdown.Value = Value;
-                                else
-                                    Dropdown.Value = nil;
-                                end;
-
-                                for _, OtherButton in next, Buttons do
-                                    OtherButton:UpdateButton();
-                                end;
+                                Selected = Dropdown.Value == Value;
                             end;
+
+                            function Table:UpdateButton()
+                                if Info.Multi then
+                                    Selected = Dropdown.Value[Value];
+                                else
+                                    Selected = Dropdown.Value == Value;
+                                end;
+
+                                ButtonLabel.TextColor3 = Selected and Library.AccentColor or Library.FontColor;
+                                Library.RegistryMap[ButtonLabel].Properties.TextColor3 = Selected and 'AccentColor' or 'FontColor';
+                            end;
+                            ButtonLabel.InputBegan:Connect(function(Input)
+                                    if Dropdown.Disabled or IsValueDisabled then return end
+                                if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
+                                    local Try = not Selected;
+
+                                    if Dropdown:GetActiveValues() == 1 and (not Try) and (not Info.AllowNull) then
+                                    else
+                                        if Info.Multi then
+                                            Selected = Try;
+
+                                            if Selected then
+                                                Dropdown.Value[Value] = true;
+                                            else
+                                                Dropdown.Value[Value] = nil;
+                                            end;
+                                        else
+                                            Selected = Try;
+
+                                            if Selected then
+                                                Dropdown.Value = Value;
+                                            else
+                                                Dropdown.Value = nil;
+                                            end;
+
+                                            for _, OtherButton in next, Buttons do
+                                                OtherButton:UpdateButton();
+                                            end;
+                                        end;
+
+                                        Table:UpdateButton();
+                                        Dropdown:Display();
+
+                                        Library:SafeCallback(Dropdown.Callback, Dropdown.Value);
+                                        Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
+
+                                        Library:AttemptSave();
+                                    end;
+                                end;
+                            end);
 
                             Table:UpdateButton();
                             Dropdown:Display();
 
-                            Library:SafeCallback(Dropdown.Callback, Dropdown.Value);
-                            Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
-
-                            Library:AttemptSave();
-                        end;
-                    end;
-                end);
-
-                    Table:UpdateButton();
-                    Dropdown:Display();
-
-                    Buttons[Button] = Table;
-                end
+                            Buttons[Button] = Table;
+                        end
             end;
             Scrolling.CanvasSize = UDim2.fromOffset(0, (Count * 20) + 1);
 
@@ -2744,7 +2764,7 @@ do
             if Dropdown.Multi then
                 local nTable = {};
                 for Value, Bool in next, Val do
-                    if table.find(Dropdown.Values, Value) then
+                    if table.find(Dropdown.Values, Value) and not table.find(Dropdown.DisabledValues or {}, Value) then
                         nTable[Value] = true
                     end;
                 end;
@@ -2753,7 +2773,7 @@ do
             else
                 if (not Val) then
                     Dropdown.Value = nil;
-                elseif table.find(Dropdown.Values, Val) then
+                elseif table.find(Dropdown.Values, Val) and not table.find(Dropdown.DisabledValues or {}, Val) then
                     Dropdown.Value = Val;
                 end;
             end;
@@ -2762,6 +2782,35 @@ do
 
             Library:SafeCallback(Dropdown.Callback, Dropdown.Value);
             Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
+        end;
+
+        function Dropdown:SetDisabledValues(NewDisabledValues)
+            -- normalize input to table
+            if NewDisabledValues == nil then
+                Dropdown.DisabledValues = {}
+            elseif type(NewDisabledValues) ~= 'table' then
+                Dropdown.DisabledValues = { NewDisabledValues }
+            else
+                Dropdown.DisabledValues = NewDisabledValues
+            end
+
+            -- remove any active selections that are now disabled
+            if Dropdown.Multi then
+                for Value, _ in next, Dropdown.Value do
+                    if table.find(Dropdown.DisabledValues or {}, Value) then
+                        Dropdown.Value[Value] = nil
+                    end
+                end
+            else
+                if Dropdown.Value and table.find(Dropdown.DisabledValues or {}, Dropdown.Value) then
+                    Dropdown.Value = nil
+                end
+            end
+
+            Dropdown:BuildDropdownList()
+            Library:SafeCallback(Dropdown.Callback, Dropdown.Value);
+            Library:SafeCallback(Dropdown.Changed, Dropdown.Value);
+            return Dropdown
         end;
 
         function Dropdown:SetDisabled(Disabled)
