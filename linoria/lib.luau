@@ -2417,6 +2417,18 @@ do
         if not Groupbox or type(Groupbox) ~= 'table' or not Groupbox.Container then
             error('AddDropdown must be called as a method on a Groupbox object (use Groupbox:AddDropdown).')
         end
+
+        local function SafeFormatDisplayValue(Value)
+            if type(Info.FormatDisplayValue) == 'function' then
+                local ok, res = pcall(Info.FormatDisplayValue, Value)
+                if ok and res ~= nil then
+                    return tostring(res)
+                end
+            end
+
+            return nil
+        end
+
         -- normalize DisabledValues to always be a table (allow single value)
         local dv = Info.DisabledValues
         if dv == nil then
@@ -2498,6 +2510,38 @@ do
             ZIndex = 7;
             Parent = DropdownInner;
         });
+        local SearchBox
+        if Info.Searchable then
+            SearchBox = Library:Create('TextBox', {
+                BackgroundTransparency = 1;
+                ClearTextOnFocus = false;
+                Font = Library.Font;
+                PlaceholderColor3 = Library:GetDarkerColor(Library.FontColor);
+                PlaceholderText = 'Search...';
+                Position = UDim2.fromOffset(5, 0);
+                Size = UDim2.new(1, -24, 1, 0);
+                Text = '';
+                TextColor3 = Library:GetDarkerColor(Library.FontColor);
+                TextSize = Library.FontSize;
+                TextStrokeTransparency = 1;
+                TextXAlignment = Enum.TextXAlignment.Left;
+                Visible = false;
+                ZIndex = 7;
+                Parent = DropdownInner;
+            });
+            Library:AddToRegistry(SearchBox, {
+                PlaceholderColor3 = function()
+                    return Library:GetDarkerColor(Library.FontColor)
+                end;
+                TextColor3 = function()
+                    return Library:GetDarkerColor(Library.FontColor)
+                end;
+            });
+
+            SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
+                Dropdown:BuildDropdownList();
+            end)
+        end
         -- apply disabled visuals/state
         DropdownOuter.Active = not Dropdown.Disabled
         ItemList.TextTransparency = Dropdown.Disabled and 0.8 or 0
@@ -2567,43 +2611,14 @@ do
             SortOrder = Enum.SortOrder.LayoutOrder;
             Parent = Scrolling;
         });
-        -- optional search box for dropdowns
-        local SearchBox
-        if Info.Searchable then
-            SearchBox = Library:Create('TextBox', {
-                BackgroundTransparency = 1;
-                PlaceholderText = 'Search...';
-                Position = UDim2.fromOffset(4, 4);
-                Size = UDim2.new(1, -8, 0, 18);
-                TextSize = Library.FontSize;
-                TextXAlignment = Enum.TextXAlignment.Left;
-                Visible = false;
-                ZIndex = 22;
-                Parent = ListInner;
-            });
-            -- rebuild list when search text changes
-            SearchBox:GetPropertyChangedSignal('Text'):Connect(function()
-                Dropdown:BuildDropdownList();
-            end)
-        end
         function Dropdown:Display()
             local Values = Dropdown.Values;
             local Str = '';
 
-            local function safeFormatValue(v)
-                if type(Info.FormatDisplayValue) == 'function' then
-                    local ok, res = pcall(Info.FormatDisplayValue, v)
-                    if ok and res ~= nil then
-                        return tostring(res)
-                    end
-                end
-                return nil
-            end
-
             if Info.Multi then
                 for Idx, Value in next, Values do
                     if Dropdown.Value[Value] then
-                        local formatted = safeFormatValue(Value)
+                        local formatted = SafeFormatDisplayValue(Value)
                         Str = Str .. (formatted or tostring(Value)) .. ', '
                     end;
                 end;
@@ -2611,7 +2626,7 @@ do
                 Str = Str:sub(1, #Str - 2);
             else
                 if Dropdown.Value then
-                    local formatted = safeFormatValue(Dropdown.Value)
+                    local formatted = SafeFormatDisplayValue(Dropdown.Value)
                     Str = formatted or tostring(Dropdown.Value)
                 else
                     Str = ''
@@ -2636,6 +2651,7 @@ do
         function Dropdown:BuildDropdownList()
             local Values = Dropdown.Values;
             local Buttons = {};
+            local SearchText = SearchBox and (SearchBox.Text or ''):lower() or '';
 
             for _, Element in next, Scrolling:GetChildren() do
                 if not Element:IsA('UIListLayout') then
@@ -2646,10 +2662,11 @@ do
             local Count = 0;
 
             for Idx, Value in next, Values do
-                        local FormattedValue = tostring(Value)
+                        local formattedValueText = SafeFormatDisplayValue(Value)
+                        local FormattedValue = formattedValueText or tostring(Value)
                         local skip = false
 
-                        if SearchBox and (SearchBox.Text or '') ~= '' and not FormattedValue:lower():match((SearchBox.Text or ''):lower()) then
+                        if SearchText ~= '' and not FormattedValue:lower():find(SearchText, 1, true) then
                             skip = true
                         end
 
@@ -2672,13 +2689,6 @@ do
                                 BackgroundColor3 = 'MainColor';
                                 BorderColor3 = 'OutlineColor';
                             });
-                            local formattedValueText = nil
-                            if type(Info.FormatDisplayValue) == 'function' then
-                                local ok, res = pcall(Info.FormatDisplayValue, Value)
-                                if ok and res ~= nil then
-                                    formattedValueText = tostring(res)
-                                end
-                            end
 
                             local ButtonLabel = Library:CreateLabel({
                                 Active = false;
@@ -2776,12 +2786,27 @@ do
         end;
 
         function Dropdown:OpenDropdown()
+            if SearchBox then
+                SearchBox.Visible = true;
+                SearchBox.Text = '';
+                task.defer(function()
+                    if SearchBox and SearchBox.Visible and ListOuter.Visible then
+                        SearchBox:CaptureFocus();
+                    end
+                end)
+            end
+            ItemList.Visible = not SearchBox or Info.Multi;
             ListOuter.Visible = true;
             Library.OpenedFrames[ListOuter] = true;
             DropdownArrow.Rotation = 180;
         end;
 
         function Dropdown:CloseDropdown()
+            if SearchBox then
+                SearchBox:ReleaseFocus();
+                SearchBox.Visible = false;
+            end
+            ItemList.Visible = true;
             ListOuter.Visible = false;
             Library.OpenedFrames[ListOuter] = nil;
             DropdownArrow.Rotation = 0;
@@ -2860,6 +2885,14 @@ do
         DropdownOuter.InputBegan:Connect(function(Input)
             if Dropdown.Disabled then return end
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) and not Library:MouseIsOverOpenedFrame() then
+                if SearchBox and SearchBox.Visible then
+                    local SearchPos, SearchSize = SearchBox.AbsolutePosition, SearchBox.AbsoluteSize;
+                    if Mouse.X >= SearchPos.X and Mouse.X <= SearchPos.X + SearchSize.X
+                        and Mouse.Y >= SearchPos.Y and Mouse.Y <= SearchPos.Y + SearchSize.Y then
+                        return
+                    end
+                end
+
                 if ListOuter.Visible then
                     Dropdown:CloseDropdown();
                 else
@@ -2870,11 +2903,15 @@ do
         InputService.InputBegan:Connect(function(Input)
             if (Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch) then
                 local AbsPos, AbsSize = ListOuter.AbsolutePosition, ListOuter.AbsoluteSize;
+                local HeaderPos, HeaderSize = DropdownOuter.AbsolutePosition, DropdownOuter.AbsoluteSize;
 
                 if Mouse.X < AbsPos.X or Mouse.X > AbsPos.X + AbsSize.X
                     or Mouse.Y < (AbsPos.Y - 20 - 1) or Mouse.Y > AbsPos.Y + AbsSize.Y then
 
-                    Dropdown:CloseDropdown();
+                    if Mouse.X < HeaderPos.X or Mouse.X > HeaderPos.X + HeaderSize.X
+                        or Mouse.Y < HeaderPos.Y or Mouse.Y > HeaderPos.Y + HeaderSize.Y then
+                        Dropdown:CloseDropdown();
+                    end;
                 end;
             end;
         end);
