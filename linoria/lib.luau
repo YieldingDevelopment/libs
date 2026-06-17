@@ -419,8 +419,40 @@ function Library:MapValue(Value, MinA, MaxA, MinB, MaxB)
     return (1 - ((Value - MinA) / (MaxA - MinA))) * MinB + ((Value - MinA) / (MaxA - MinA)) * MaxB;
 end;
 
-function Library:GetTextBounds(Text, Font, Size, Resolution)
-    local Bounds = TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1920, 1080))
+function Library:GetTextBounds(Text, Font, Size, WidthOrResolution)
+    -- Try modern GetTextBoundsAsync with GetTextBoundsParams when available (supports Font/FontFace)
+    local ok, result = pcall(function()
+        if typeof(TextService.GetTextBoundsAsync) == 'function' then
+            local Params = Instance.new('GetTextBoundsParams')
+            Params.Text = Text
+            Params.TextSize = Size
+            -- attempt to set Font (works for Enum.Font or FontFace)
+            pcall(function() Params.Font = Font end)
+            if typeof(WidthOrResolution) == 'number' then
+                Params.Width = WidthOrResolution
+            end
+
+            return TextService:GetTextBoundsAsync(Params)
+        end
+        error('GetTextBoundsAsync unavailable')
+    end)
+
+    if ok and result then
+        return result.X, result.Y
+    end
+
+    -- Fallback to GetTextSize which expects a Vector2 resolution and Enum.Font
+    local Resolution
+    if typeof(WidthOrResolution) == 'number' then
+        Resolution = Vector2.new(WidthOrResolution, math.huge)
+    elseif typeof(WidthOrResolution) == 'Vector2' then
+        Resolution = WidthOrResolution
+    else
+        Resolution = Vector2.new(1920, 1080)
+    end
+
+    local FontToUse = (typeof(Font) == 'EnumItem') and Font or Library.Font
+    local Bounds = TextService:GetTextSize(Text, Size, FontToUse, Resolution)
     return Bounds.X, Bounds.Y
 end;
 
