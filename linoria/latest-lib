@@ -2402,6 +2402,7 @@ do
             Disabled = Info.Disabled or false;
         };
 
+        local Groupbox = self;
         -- normalize DisabledValues to always be a table (allow single value)
         local dv = Info.DisabledValues
         if dv == nil then
