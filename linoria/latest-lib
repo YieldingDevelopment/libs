@@ -1635,6 +1635,7 @@ function Funcs:AddLabel(...)
     end
 
     Label.Holder = TextLabel
+    Groupbox.Elements = Groupbox.Elements or {}
     table.insert(Groupbox.Elements, Label)
 
     if Data.Idx then
