@@ -423,6 +423,12 @@ function Library:GetTextBounds(Text, Font, Size, Resolution)
     -- Accept either a Vector2 `Resolution` (legacy linoria usage)
     -- or a numeric `Width` (obsidian usage). Fall back to screen size when missing.
     if type(Resolution) == 'number' then
+        -- If Font is an Enum.Font (EnumItem), use GetTextSize with a Vector2 sized width
+        if typeof(Font) == 'EnumItem' then
+            local Bounds = TextService:GetTextSize(Text, Size, Font, Vector2.new(Resolution, math.huge))
+            return Bounds.X, Bounds.Y
+        end
+
         local Params = Instance.new('GetTextBoundsParams')
         Params.Text = Text
         Params.RichText = true
