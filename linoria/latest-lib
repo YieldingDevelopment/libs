@@ -4353,7 +4353,7 @@ function Library:CreateWindow(...)
             Text = '';
             Size = UDim2.fromScale(1, 1);
             ZIndex = 9000;
-            Parent = ScreenGui;
+            Parent = Inner;
         });
         local DialogTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
