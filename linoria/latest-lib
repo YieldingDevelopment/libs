@@ -209,6 +209,48 @@ function Library:ApplyGlow(Inst)
 
 end;
 
+local FetchIcons, Icons = pcall(function()
+    return loadstring(game:HttpGet('https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua'))()
+end)
+
+local function IsValidCustomIcon(Icon)
+    return type(Icon) == 'string' and (Icon:match('rbxasset') or Icon:match('roblox%.com/asset/%?id=') or Icon:match('rbxthumb://type='))
+end
+
+function Library:GetIcon(IconName)
+    if not FetchIcons or not Icons then
+        return nil
+    end
+
+    local Success, Icon = pcall(Icons.GetAsset, IconName)
+    if not Success then
+        return nil
+    end
+
+    return Icon
+end
+
+function Library:GetCustomIcon(IconName)
+    if not IconName then
+        return nil
+    end
+
+    if tonumber(IconName) then
+        IconName = string.format('rbxassetid://%s', tostring(IconName))
+    end
+
+    if IsValidCustomIcon(IconName) then
+        return {
+            Url = IconName;
+            ImageRectOffset = Vector2.zero;
+            ImageRectSize = Vector2.zero;
+            Custom = true;
+        }
+    end
+
+    return Library:GetIcon(IconName)
+end
+
 function Library:CreateLabel(Properties, IsHud)
     local _Instance = Library:Create('TextLabel', {
         BackgroundTransparency = 1;
@@ -1689,6 +1731,9 @@ do
             Label.Visible = Visible
             TextLabel.Visible = Visible
             Spacer.Visible = Visible
+            if Wrapped then
+                RefreshWrappedHeight()
+            end
             Groupbox:Resize();
             return Label;
         end
@@ -1845,6 +1890,7 @@ do
         end
 
         Button.Outer, Button.Inner, Button.Label = CreateBaseButton(Button)
+        -- apply initial disabled visuals if provided
         Button.Outer.Active = not Button.Disabled
         Button.Label.TextTransparency = Button.Disabled and 0.8 or 0
         Button.Outer.Parent = Container
@@ -1882,6 +1928,7 @@ do
                 SubButton:AddTooltip(SubButton.Tooltip)
             end
 
+            -- SubButton public APIs
             function SubButton:SetDisabled(Disabled)
                 SubButton.Disabled = Disabled
                 SubButton.Outer.Active = not Disabled
@@ -1911,6 +1958,7 @@ do
             Button:AddTooltip(Button.Tooltip)
         end
 
+        -- Public APIs for Button
         function Button:SetDisabled(Disabled)
             Button.Disabled = Disabled
             Button.Outer.Active = not Disabled
@@ -1931,6 +1979,7 @@ do
         end
 
         function Button:UpdateColors()
+            -- kept for API parity with obsidian; library-wide color updates handle visuals
         end
 
         Groupbox:AddBlank(5);
@@ -2354,6 +2403,7 @@ do
             ZIndex = 9;
             Parent = SliderInner;
         });
+        -- apply disabled visuals/state
         SliderOuter.Active = not Slider.Disabled
         DisplayLabel.TextTransparency = Slider.Disabled and 0.8 or 0
         Fill.BackgroundTransparency = Slider.Disabled and 0.6 or 0
@@ -2395,6 +2445,7 @@ do
             else
                 local formatted = safeFormatDisplay(Slider, Slider.Value)
                 if formatted then
+                    -- if custom formatter returns a full string, use it as-is
                     DisplayLabel.Text = formatted
                 else
                     DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix)
@@ -2537,6 +2588,7 @@ do
             return nil
         end
 
+        -- normalize DisabledValues to always be a table (allow single value)
         local dv = Info.DisabledValues
         if dv == nil then
             Dropdown.DisabledValues = {}
@@ -2685,7 +2737,7 @@ do
             end
             Dropdown:Display();
         end
-
+        -- apply disabled visuals/state
         DropdownOuter.Active = not Dropdown.Disabled
         ItemList.TextTransparency = Dropdown.Disabled and 0.8 or 0
         DropdownArrow.ImageTransparency = Dropdown.Disabled and 0.6 or 0
@@ -2989,6 +3041,7 @@ do
         end;
 
         function Dropdown:SetDisabledValues(NewDisabledValues)
+            -- normalize input to table
             if NewDisabledValues == nil then
                 Dropdown.DisabledValues = {}
             elseif type(NewDisabledValues) ~= 'table' then
@@ -2997,6 +3050,7 @@ do
                 Dropdown.DisabledValues = NewDisabledValues
             end
 
+            -- remove any active selections that are now disabled
             if Dropdown.Multi then
                 for Value, _ in next, Dropdown.Value do
                     if table.find(Dropdown.DisabledValues or {}, Value) then
@@ -3512,6 +3566,8 @@ function Library:CreateWindow(...)
     if type(Config.Title) ~= 'string' then Config.Title = 'No title' end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
+    if typeof(Config.IconSize) == 'number' then Config.IconSize = UDim2.fromOffset(Config.IconSize, Config.IconSize) end
+    if typeof(Config.IconSize) ~= 'UDim2' then Config.IconSize = UDim2.fromOffset(16, 16) end
 
     if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(550, 600) end
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
@@ -3559,21 +3615,13 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'OutlineColor';
     });
-    local WindowLabel = Library:CreateLabel({
-        Position = UDim2.new(0, 0, 0, 0);
-        Size = UDim2.new(1, 0, 0, 25);
-        Text = Config.Title or '';
-        RichText = true; 
-        TextXAlignment = Enum.TextXAlignment.Center;
-        ZIndex = 1;
-        Parent = Inner;
-    });
     local MapNameLabel = Library:CreateLabel({
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, -7, 0, 0),
         Size = UDim2.new(0, 0, 0, 25),
         Text = 'Loading...',
         TextColor3 = Library.AccentColor,
+        TextSize = Library.FontSize + 2,
         TextXAlignment = Enum.TextXAlignment.Right,
         ZIndex = 1,
         Parent = Inner;
@@ -3665,16 +3713,69 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'MainColor';
         BorderColor3 = 'OutlineColor';
     });
+    local TitleHolder = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        Size = UDim2.new(1, 0, 0, 25);
+        ZIndex = 1;
+        Parent = Inner;
+    });
+    Library:Create('UIListLayout', {
+        FillDirection = Enum.FillDirection.Horizontal;
+        HorizontalAlignment = Enum.HorizontalAlignment.Center;
+        VerticalAlignment = Enum.VerticalAlignment.Center;
+        SortOrder = Enum.SortOrder.LayoutOrder;
+        Padding = UDim.new(0, 6);
+        Parent = TitleHolder;
+    });
+    local WindowIconInfo = Library:GetCustomIcon(Config.Icon or Config.IconName)
+    local WindowIcon = nil
+    if WindowIconInfo then
+        WindowIcon = Library:Create('ImageLabel', {
+            BackgroundTransparency = 1;
+            Image = WindowIconInfo.Url;
+            ImageColor3 = WindowIconInfo.Custom and Library.FontColor or Library.AccentColor;
+            ImageRectOffset = WindowIconInfo.ImageRectOffset;
+            ImageRectSize = WindowIconInfo.ImageRectSize;
+            ImageTransparency = 0;
+            ScaleType = Enum.ScaleType.Fit;
+            Size = Config.IconSize;
+            LayoutOrder = 1;
+            ZIndex = 1;
+            Parent = TitleHolder;
+        });
+        Library:AddToRegistry(WindowIcon, {
+            ImageColor3 = WindowIconInfo.Custom and 'FontColor' or 'AccentColor';
+        });
+    end
+    local WindowLabel = Library:CreateLabel({
+        AutomaticSize = Enum.AutomaticSize.X;
+        Position = UDim2.new(0, 0, 0, 0);
+        Size = UDim2.fromOffset(0, 25);
+        Text = Config.Title or '';
+        RichText = true;
+        TextSize = Library.FontSize + 2;
+        TextXAlignment = Enum.TextXAlignment.Left;
+        LayoutOrder = 2;
+        ZIndex = 1;
+        Parent = TitleHolder;
+    });
     function Window:SetWindowTitle(Title)
         WindowLabel.Text = Title;
     end;
-    function Window:AddTab(Name)
+    function Window:AddTab(Name, IconName)
         local Tab = {
             Groupboxes = {};
             Tabboxes = {};
         };
+        if type(Name) == 'table' then
+            local Info = Name
+            Name = Info.Name or 'Tab'
+            IconName = Info.Icon or Info.IconName
+        end
 
-        local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, Library.FontSize + 2);
+        local TabIconInfo = Library:GetCustomIcon(IconName)
+        local TabIconSize = TabIconInfo and 16 or 0
+        local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, Library.FontSize + 2) + (TabIconSize > 0 and (TabIconSize + 6) or 0)
         local TabButton = Library:Create('Frame', {
             BackgroundColor3 = Library.BackgroundColor;
             BorderColor3 = Library.OutlineColor;
@@ -3686,12 +3787,52 @@ function Library:CreateWindow(...)
             BackgroundColor3 = 'BackgroundColor';
             BorderColor3 = 'OutlineColor';
         });
-        local TabButtonLabel = Library:CreateLabel({
-            Position = UDim2.new(0, 0, 0, 0);
-            Size = UDim2.new(1, 0, 1, -1);
-            Text = Name;
+        local TabButtonContent = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            AutomaticSize = Enum.AutomaticSize.X;
+            AnchorPoint = Vector2.new(0.5, 0.5);
+            Position = UDim2.fromScale(0.5, 0.5);
+            Size = UDim2.fromOffset(0, 16);
             ZIndex = 1;
             Parent = TabButton;
+        });
+        Library:Create('UIListLayout', {
+            FillDirection = Enum.FillDirection.Horizontal;
+            HorizontalAlignment = Enum.HorizontalAlignment.Center;
+            VerticalAlignment = Enum.VerticalAlignment.Center;
+            SortOrder = Enum.SortOrder.LayoutOrder;
+            Padding = UDim.new(0, 6);
+            Parent = TabButtonContent;
+        });
+        local TabButtonIcon = nil
+        if TabIconInfo then
+            TabButtonIcon = Library:Create('ImageLabel', {
+                BackgroundTransparency = 1;
+                Image = TabIconInfo.Url;
+                ImageColor3 = TabIconInfo.Custom and Library.FontColor or Library.AccentColor;
+                ImageRectOffset = TabIconInfo.ImageRectOffset;
+                ImageRectSize = TabIconInfo.ImageRectSize;
+                ImageTransparency = 0;
+                ScaleType = Enum.ScaleType.Fit;
+                Size = UDim2.fromOffset(16, 16);
+                LayoutOrder = 1;
+                ZIndex = 1;
+                Parent = TabButtonContent;
+            });
+            Library:AddToRegistry(TabButtonIcon, {
+                ImageColor3 = TabIconInfo.Custom and 'FontColor' or 'AccentColor';
+            });
+        end
+        local TabButtonLabel = Library:CreateLabel({
+            AutomaticSize = Enum.AutomaticSize.X;
+            BackgroundTransparency = 1;
+            Size = UDim2.fromOffset(0, 16);
+            Text = Name;
+            TextSize = Library.FontSize + 2;
+            TextXAlignment = TabIconInfo and Enum.TextXAlignment.Left or Enum.TextXAlignment.Center;
+            LayoutOrder = 2;
+            ZIndex = 1;
+            Parent = TabButtonContent;
         });
         local TabIndicator = Library:Create('Frame', {
             BackgroundColor3 = Library.AccentColor;
@@ -3820,9 +3961,28 @@ function Library:CreateWindow(...)
             Library:AddToRegistry(Highlight, {
                 BackgroundColor3 = 'AccentColor';
             });
+            local GroupboxIconInfo = Library:GetCustomIcon(Info.IconName or Info.Icon)
+            if GroupboxIconInfo then
+                local GroupboxIcon = Library:Create('ImageLabel', {
+                    BackgroundTransparency = 1;
+                    Image = GroupboxIconInfo.Url;
+                    ImageColor3 = GroupboxIconInfo.Custom and Library.FontColor or Library.AccentColor;
+                    ImageRectOffset = GroupboxIconInfo.ImageRectOffset;
+                    ImageRectSize = GroupboxIconInfo.ImageRectSize;
+                    ImageTransparency = 0;
+                    ScaleType = Enum.ScaleType.Fit;
+                    Size = UDim2.fromOffset(16, 16);
+                    Position = UDim2.fromOffset(6, 9);
+                    ZIndex = 5;
+                    Parent = BoxInner;
+                });
+                Library:AddToRegistry(GroupboxIcon, {
+                    ImageColor3 = GroupboxIconInfo.Custom and 'FontColor' or 'AccentColor';
+                });
+            end
             local GroupboxLabel = Library:CreateLabel({
-                Size = UDim2.new(1, 0, 0, 18);
-                Position = UDim2.new(0, 4, 0, 2);
+                Size = UDim2.new(1, GroupboxIconInfo and -24 or 0, 0, 18);
+                Position = UDim2.fromOffset(GroupboxIconInfo and 24 or 0, 2);
                 TextSize = Library.FontSize;
                 Text = Info.Name;
                 TextXAlignment = Enum.TextXAlignment.Left;
@@ -3835,6 +3995,11 @@ function Library:CreateWindow(...)
                 Size = UDim2.new(1, -4, 1, -20);
                 ZIndex = 1;
                 Parent = BoxInner;
+            });
+            Library:Create('UIPadding', {
+                PaddingLeft = UDim.new(0, GroupboxIconInfo and 0 or 12);
+                PaddingRight = UDim.new(0, 12);
+                Parent = GroupboxLabel;
             });
             Library:Create('UIListLayout', {
                 FillDirection = Enum.FillDirection.Vertical;
