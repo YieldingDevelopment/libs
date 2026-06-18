@@ -527,7 +527,16 @@ function Library:MapValue(Value, MinA, MaxA, MinB, MaxB)
 end;
 
 function Library:GetTextBounds(Text, Font, Size, Resolution)
-    local Bounds = TextService:GetTextSize(Text, Size, Font, Resolution or Vector2.new(1920, 1080))
+    local BoundsResolution
+    if typeof(Resolution) == 'Vector2' then
+        BoundsResolution = Resolution
+    elseif type(Resolution) == 'number' then
+        BoundsResolution = Vector2.new(Resolution, 1000)
+    else
+        BoundsResolution = Vector2.new(1920, 1080)
+    end
+
+    local Bounds = TextService:GetTextSize(Text, Size, Font, BoundsResolution)
     return Bounds.X, Bounds.Y
 end;
 
@@ -4347,6 +4356,8 @@ function Library:CreateWindow(...)
             Parent = ScreenGui;
         });
         local DialogTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+        local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+        local BaseDialogWidth = math.min((Config.Size and Config.Size.X and Config.Size.X.Offset) or 550, Viewport.X - 20)
 
         TweenService:Create(DialogOverlay, DialogTweenInfo, {
             BackgroundTransparency = 0.5;
@@ -4360,7 +4371,7 @@ function Library:CreateWindow(...)
             AutoButtonColor = false;
             Active = true;
             Position = UDim2.fromScale(0.5, 0.5);
-            Size = UDim2.fromOffset(400, 0);
+            Size = UDim2.fromOffset(BaseDialogWidth, 0);
             AutomaticSize = Enum.AutomaticSize.Y;
             Text = '';
             ZIndex = 9001;
@@ -4404,13 +4415,20 @@ function Library:CreateWindow(...)
             Parent = HeaderContainer;
         });
 
+        local Dialog = nil
         local TitleRow = Library:Create('Frame', {
             BackgroundTransparency = 1;
-            AutomaticSize = Enum.AutomaticSize.Y;
             Size = UDim2.new(1, 0, 0, 20);
             LayoutOrder = 1;
             ZIndex = 9002;
             Parent = HeaderContainer;
+        });
+        local TitleContent = Library:Create('Frame', {
+            BackgroundTransparency = 1;
+            ClipsDescendants = true;
+            Size = UDim2.new(1, -26, 1, 0);
+            ZIndex = 9002;
+            Parent = TitleRow;
         });
         Library:Create('UIListLayout', {
             FillDirection = Enum.FillDirection.Horizontal;
@@ -4418,7 +4436,7 @@ function Library:CreateWindow(...)
             VerticalAlignment = Enum.VerticalAlignment.Center;
             SortOrder = Enum.SortOrder.LayoutOrder;
             Padding = UDim.new(0, 6);
-            Parent = TitleRow;
+            Parent = TitleContent;
         });
 
         local TitleColor = ResolveColor(Info.TitleColor) or Library.FontColor
@@ -4436,22 +4454,85 @@ function Library:CreateWindow(...)
                 Size = UDim2.fromOffset(16, 16);
                 LayoutOrder = 1;
                 ZIndex = 9002;
-                Parent = TitleRow;
+                Parent = TitleContent;
             });
         end
 
         local TitleLabel = Library:CreateLabel({
             BackgroundTransparency = 1;
-            AutomaticSize = Enum.AutomaticSize.XY;
-            Size = UDim2.new(1, 0, 0, 18);
+            AutomaticSize = Enum.AutomaticSize.X;
+            Size = UDim2.fromOffset(0, Library.FontSize + 2);
             Text = Info.Title;
             TextColor3 = TitleColor;
-            TextSize = 18;
+            TextSize = Library.FontSize + 2;
             TextXAlignment = Enum.TextXAlignment.Left;
+            TextTruncate = Enum.TextTruncate.AtEnd;
             LayoutOrder = 2;
             ZIndex = 9002;
+            Parent = TitleContent;
+        });
+
+        local CloseButtonOuter = Library:Create('Frame', {
+            AnchorPoint = Vector2.new(1, 0);
+            BackgroundColor3 = Color3.new(0, 0, 0);
+            BorderColor3 = Color3.new(0, 0, 0);
+            BorderSizePixel = 0;
+            Position = UDim2.new(1, 0, 0, 0);
+            Size = UDim2.fromOffset(20, 20);
+            ZIndex = 9003;
             Parent = TitleRow;
         });
+        local CloseButtonInner = Library:Create('Frame', {
+            BackgroundColor3 = Library.MainColor;
+            BorderColor3 = Library.OutlineColor;
+            BorderMode = Enum.BorderMode.Inset;
+            BorderSizePixel = 0;
+            Size = UDim2.new(1, 0, 1, 0);
+            ZIndex = 9004;
+            Parent = CloseButtonOuter;
+        });
+        Library:Create('UIGradient', {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
+            });
+            Rotation = 90;
+            Parent = CloseButtonInner;
+        });
+        Library:AddToRegistry(CloseButtonInner, {
+            BackgroundColor3 = 'MainColor';
+            BorderColor3 = 'OutlineColor';
+        });
+        local CloseButton = Library:Create('TextButton', {
+            BackgroundTransparency = 1;
+            AutoButtonColor = false;
+            Size = UDim2.new(1, 0, 1, 0);
+            Text = '';
+            ZIndex = 9005;
+            Parent = CloseButtonInner;
+        });
+        Library:CreateLabel({
+            BackgroundTransparency = 1;
+            Size = UDim2.new(1, 0, 1, 0);
+            Text = 'X';
+            TextColor3 = Library.FontColor;
+            TextSize = 14;
+            TextXAlignment = Enum.TextXAlignment.Center;
+            TextYAlignment = Enum.TextYAlignment.Center;
+            ZIndex = 9006;
+            Parent = CloseButton;
+        });
+        CloseButton.MouseEnter:Connect(function()
+            CloseButtonOuter.BorderColor3 = Library.AccentColor
+        end)
+        CloseButton.MouseLeave:Connect(function()
+            CloseButtonOuter.BorderColor3 = Color3.new(0, 0, 0)
+        end)
+        CloseButton.MouseButton1Click:Connect(function()
+            if Dialog then
+                Dialog:Dismiss()
+            end
+        end)
 
         local DescriptionColor = ResolveColor(Info.DescriptionColor) or Library.FontColor
         local DescriptionLabel = Library:CreateLabel({
@@ -4468,6 +4549,7 @@ function Library:CreateWindow(...)
             ZIndex = 9002;
             Parent = HeaderContainer;
         });
+        DescriptionLabel.Visible = DescriptionLabel.Text ~= ''
 
         local DialogContainer = Library:Create('Frame', {
             BackgroundTransparency = 1;
@@ -4507,7 +4589,8 @@ function Library:CreateWindow(...)
             Padding = UDim.new(0, 8);
             FillDirection = Enum.FillDirection.Horizontal;
             HorizontalAlignment = Enum.HorizontalAlignment.Right;
-            Wraps = true;
+            VerticalAlignment = Enum.VerticalAlignment.Center;
+            Wraps = false;
             SortOrder = Enum.SortOrder.LayoutOrder;
             Parent = ButtonsHolder;
         });
@@ -4517,7 +4600,7 @@ function Library:CreateWindow(...)
         });
 
         local FooterButtonsList = {}
-        local Dialog = {
+        Dialog = {
             Container = DialogContainer;
             Elements = {};
             FooterButtons = FooterButtonsList;
@@ -4527,25 +4610,8 @@ function Library:CreateWindow(...)
 
         function Dialog:Resize()
             local Viewport = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
-            local MinWidth = math.max(320, math.min(400, Viewport.X - 20))
-            local MaxWidth = math.max(MinWidth, math.floor(math.min(Viewport.X * 0.75, 520)))
+            local MinWidth = math.min((Config.Size and Config.Size.X and Config.Size.X.Offset) or 550, Viewport.X - 20)
             local RequiredWidth = MinWidth
-
-            for _, BtnWrap in next, FooterButtonsList do
-                if BtnWrap and BtnWrap.Container and BtnWrap.Container.Size then
-                    RequiredWidth = math.max(RequiredWidth, BtnWrap.Container.Size.X.Offset)
-                end
-            end
-
-            local TargetWidth = math.max(MinWidth, math.min(RequiredWidth, MaxWidth))
-            DialogFrame.Size = UDim2.fromOffset(TargetWidth, 0)
-
-            local TitleWidth = Library:GetTextBounds(TitleLabel.Text, Library.Font, 18, TargetWidth - 30)
-            if TitleWidth and TitleWidth > 0 then
-                RequiredWidth = math.max(RequiredWidth, TitleWidth + 30)
-                TargetWidth = math.max(MinWidth, math.min(RequiredWidth, MaxWidth))
-                DialogFrame.Size = UDim2.fromOffset(TargetWidth, 0)
-            end
 
             local HasButtons = false
             local TotalButtonWidth = 0
@@ -4558,8 +4624,9 @@ function Library:CreateWindow(...)
                 end
             end
 
-            local ButtonTargetWidth = math.max(MinWidth, math.min(math.max(RequiredWidth, TotalButtonWidth + ((ButtonCount - 1) * 8) + 30), MaxWidth))
-            DialogFrame.Size = UDim2.fromOffset(ButtonTargetWidth, 0)
+            local ButtonTargetWidth = TotalButtonWidth + ((ButtonCount - 1) * 8) + 30
+            RequiredWidth = math.max(RequiredWidth, ButtonTargetWidth)
+            DialogFrame.Size = UDim2.fromOffset(math.min(RequiredWidth, Viewport.X - 20), 0)
 
             Separator.Visible = HasButtons
             ButtonsHolder.Visible = HasButtons
@@ -4572,6 +4639,7 @@ function Library:CreateWindow(...)
 
         function Dialog:SetDescription(Description)
             DescriptionLabel.Text = tostring(Description or '')
+            DescriptionLabel.Visible = DescriptionLabel.Text ~= ''
             Dialog:Resize()
         end
 
@@ -4672,7 +4740,7 @@ function Library:CreateWindow(...)
 
             local ButtonContainer = Library:Create('Frame', {
                 BackgroundTransparency = 1;
-                Size = UDim2.fromOffset(0, 26);
+                Size = UDim2.fromOffset(0, 20);
                 LayoutOrder = tonumber(ButtonInfo.Order) or 0;
                 ZIndex = 9002;
                 Parent = ButtonsHolder;
@@ -4682,7 +4750,7 @@ function Library:CreateWindow(...)
                 BackgroundColor3 = Color3.new(0, 0, 0);
                 BorderColor3 = Color3.new(0, 0, 0);
                 BorderSizePixel = 0;
-                Size = UDim2.fromOffset(0, 26);
+                Size = UDim2.fromOffset(0, 20);
                 ZIndex = 9003;
                 Parent = ButtonContainer;
             });
@@ -4695,6 +4763,14 @@ function Library:CreateWindow(...)
                 Size = UDim2.new(1, 0, 1, 0);
                 ZIndex = 9004;
                 Parent = ButtonOuter;
+            });
+            Library:Create('UIGradient', {
+                Color = ColorSequence.new({
+                    ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+                    ColorSequenceKeypoint.new(1, Color3.fromRGB(212, 212, 212))
+                });
+                Rotation = 90;
+                Parent = ButtonInner;
             });
             Library:AddToRegistry(ButtonInner, {
                 BackgroundColor3 = Theme.Color;
@@ -4717,13 +4793,14 @@ function Library:CreateWindow(...)
                 TextColor3 = Library.FontColor;
                 TextSize = 14;
                 TextTransparency = WaitTime > 0 and 0.5 or 0;
+                TextYAlignment = Enum.TextYAlignment.Center;
                 ZIndex = 9006;
                 Parent = Button;
             });
 
-            local LabelWidth = Library:GetTextBounds(ButtonText, Library.Font, 14, 250)
-            ButtonContainer.Size = UDim2.fromOffset(LabelWidth + 30, 26)
-            ButtonOuter.Size = UDim2.fromOffset(LabelWidth + 30, 26)
+            local LabelWidth = Library:GetTextBounds(ButtonText, Library.Font, 14)
+            ButtonContainer.Size = UDim2.fromOffset(LabelWidth + 24, 20)
+            ButtonOuter.Size = UDim2.fromOffset(LabelWidth + 24, 20)
 
             local ProgressBar = nil
             if WaitTime > 0 then
