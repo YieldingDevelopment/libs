@@ -50,8 +50,8 @@ local Library = {
     ScreenGui = ScreenGui;
 
     Toggled = false;
-    WireframeDrag = true;
-    UseBlur = true;
+    WireframeDrag = false;
+    UseBlur = false;
     BlurSize = 15;
 
     KeybindMode = 'All';
@@ -1954,6 +1954,7 @@ do
         end
 
         Button.Outer, Button.Inner, Button.Label = CreateBaseButton(Button)
+        -- apply initial disabled visuals if provided
         Button.Outer.Active = not Button.Disabled
         Button.Label.TextTransparency = Button.Disabled and 0.8 or 0
         Button.Outer.Parent = Container
@@ -1991,6 +1992,7 @@ do
                 SubButton:AddTooltip(SubButton.Tooltip)
             end
 
+            -- SubButton public APIs
             function SubButton:SetDisabled(Disabled)
                 SubButton.Disabled = Disabled
                 SubButton.Outer.Active = not Disabled
@@ -2041,7 +2043,7 @@ do
         end
 
         function Button:UpdateColors()
-
+            -- kept for API parity with obsidian; library-wide color updates handle visuals
         end
 
         Groupbox:AddBlank(5);
@@ -2465,6 +2467,7 @@ do
             ZIndex = 9;
             Parent = SliderInner;
         });
+        -- apply disabled visuals/state
         SliderOuter.Active = not Slider.Disabled
         DisplayLabel.TextTransparency = Slider.Disabled and 0.8 or 0
         Fill.BackgroundTransparency = Slider.Disabled and 0.6 or 0
@@ -2506,6 +2509,7 @@ do
             else
                 local formatted = safeFormatDisplay(Slider, Slider.Value)
                 if formatted then
+                    -- if custom formatter returns a full string, use it as-is
                     DisplayLabel.Text = formatted
                 else
                     DisplayLabel.Text = string.format('%s/%s', Slider.Value .. Suffix, Slider.Max .. Suffix)
@@ -2648,6 +2652,7 @@ do
             return nil
         end
 
+        -- normalize DisabledValues to always be a table (allow single value)
         local dv = Info.DisabledValues
         if dv == nil then
             Dropdown.DisabledValues = {}
@@ -2796,6 +2801,7 @@ do
             end
             Dropdown:Display();
         end
+        -- apply disabled visuals/state
         DropdownOuter.Active = not Dropdown.Disabled
         ItemList.TextTransparency = Dropdown.Disabled and 0.8 or 0
         DropdownArrow.ImageTransparency = Dropdown.Disabled and 0.6 or 0
@@ -3099,6 +3105,7 @@ do
         end;
 
         function Dropdown:SetDisabledValues(NewDisabledValues)
+            -- normalize input to table
             if NewDisabledValues == nil then
                 Dropdown.DisabledValues = {}
             elseif type(NewDisabledValues) ~= 'table' then
@@ -3107,6 +3114,7 @@ do
                 Dropdown.DisabledValues = NewDisabledValues
             end
 
+            -- remove any active selections that are now disabled
             if Dropdown.Multi then
                 for Value, _ in next, Dropdown.Value do
                     if table.find(Dropdown.DisabledValues or {}, Value) then
@@ -4379,6 +4387,25 @@ function Library:CreateWindow(...)
             BackgroundColor3 = 'MainColor';
             BorderColor3 = 'OutlineColor';
         });
+        local DialogHighlight = Library:Create('Frame', {
+            BackgroundColor3 = Library.AccentColor;
+            BorderSizePixel = 0;
+            ZIndex = 9002;
+            Parent = DialogOverlay;
+        });
+        Library:AddToRegistry(DialogHighlight, {
+            BackgroundColor3 = 'AccentColor';
+        });
+        local function UpdateDialogHighlight()
+            if not DialogHighlight.Parent or not DialogFrame.Parent then
+                return
+            end
+
+            local FramePos = DialogFrame.AbsolutePosition
+            local FrameSize = DialogFrame.AbsoluteSize
+            DialogHighlight.Position = UDim2.fromOffset(FramePos.X + 1, FramePos.Y + 1)
+            DialogHighlight.Size = UDim2.fromOffset(math.max(0, FrameSize.X - 2), 2)
+        end
         Library:Create('UIPadding', {
             PaddingBottom = UDim.new(0, 15);
             PaddingLeft = UDim.new(0, 15);
@@ -4398,6 +4425,9 @@ function Library:CreateWindow(...)
         TweenService:Create(DialogScale, DialogTweenInfo, {
             Scale = 1;
         }):Play();
+        DialogFrame:GetPropertyChangedSignal('AbsolutePosition'):Connect(UpdateDialogHighlight)
+        DialogFrame:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateDialogHighlight)
+        UpdateDialogHighlight()
 
         local HeaderContainer = Library:Create('Frame', {
             BackgroundTransparency = 1;
@@ -4626,6 +4656,7 @@ function Library:CreateWindow(...)
             local ButtonTargetWidth = TotalButtonWidth + ((ButtonCount - 1) * 8) + 30
             RequiredWidth = math.max(RequiredWidth, ButtonTargetWidth)
             DialogFrame.Size = UDim2.fromOffset(math.min(RequiredWidth, MaxWidth), 0)
+            UpdateDialogHighlight()
 
             local HasElements = false
             for _, Child in next, DialogContainer:GetChildren() do
