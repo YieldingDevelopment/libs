@@ -94,6 +94,15 @@ local ThemeManager = {} do
 		themeGroupbox:AddLabel('Text color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
 		themeGroupbox:AddLabel('Risk Text color')	:AddColorPicker('RiskColor', { Default = self.Library.RiskColor });
 
+		themeGroupbox:AddDivider()
+
+		themeGroupbox:AddDropdown('ThemeManager_FontFace', { Text = 'Font Face', Values = {"Code", "SourceSans", "SourceSansBold", "SourceSansLight", "SourceSansItalic", "SourceSansSemibold", "Bodoni", "Garamond", "Cartoon", "Highway", "SciFi", "Arcade", "Fantasy", "Fantasy", "AmaticSC", "DenkOne", "Fondamento", "GrenzeGotisch", "JosefinSans", "Jura", "Kalam", "LuckiestGuy", "Merriweather", "Michroma", "Nunito", "Oswald", "Roboto", "RobotoCondensed", "RobotoMono", "Sarpanch", "SpecialElite", "TitilliumWeb", "Ubuntu", "BuilderSans", "BuilderSansMedium", "BuilderSansBold", "BuilderSansExtraBold", "Arimo", "ArimoBold", "Legacy"}, Default = 1, Searchable = true, Callback = function(value)
+			self.Library.Font = value
+			self.Library:UpdateFont()
+		end
+
+	 })
+
 		themeGroupbox:AddDropdown('ThemeManager_ThemeList', { Text = 'Theme list', Values = ThemesArray, Default = 1 })
 
 		themeGroupbox:AddButton('Set as default', function()
