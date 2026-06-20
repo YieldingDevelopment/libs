@@ -54,7 +54,7 @@ local Library = {
     UseBlur = false;
     BlurSize = 15;
 
-    KeybindMode = 'All';
+    KeybindMode = 'Active';
 
     NotifyConfig = {
         Alignment = 'Left';
