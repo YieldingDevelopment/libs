@@ -134,6 +134,7 @@ local SaveManager = {} do
 	function SaveManager:IgnoreThemeSettings()
 		self:SetIgnoreIndexes({ 
 			"BackgroundColor", "MainColor", "AccentColor", "OutlineColor", "FontColor", -- themes
+			"BackgroundBlur", "BackgroundBlurStrength", "WireframeDragging", -- theme manager settings
 			"ThemeManager_ThemeList", 'ThemeManager_CustomThemeList', 'ThemeManager_CustomThemeName', -- themes
 		})
 	end
