@@ -142,7 +142,7 @@ local ThemeManager = {} do
 				end
 			})
 
-			backgroundGroupbox:AddSlider('BackgroundBlurStrength', { Text = 'Background Blur Strength', Default = self.Library.BlurSize or self.Library.BackgroundBlurStrength or self.Library.BlurStrength, Min = 0, Max = 20, Rounding = 0.1, Tooltip = 'How strong the background blur should be (only works if Background Blur is enabled)', 
+			backgroundGroupbox:AddSlider('BackgroundBlurStrength', { Text = 'Background Blur Strength', Default = self.Library.BlurSize or self.Library.BackgroundBlurStrength or self.Library.BlurStrength, Min = 0, Max = 20, Rounding = 1, Tooltip = 'How strong the background blur should be (only works if Background Blur is enabled)', 
 				Callback = function(value)
 					self.Library.BlurSize = value
 					self.Library.BackgroundBlurStrength = value
