@@ -87,6 +87,13 @@ local ThemeManager = {} do
 
 		table.sort(ThemesArray, function(a, b) return self.BuiltInThemes[a][1] < self.BuiltInThemes[b][1] end)
 
+		themeGroupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
+		themeGroupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
+		themeGroupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
+		themeGroupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
+		themeGroupbox:AddLabel('Text color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
+		themeGroupbox:AddLabel('Risk Text color')	:AddColorPicker('RiskColor', { Default = self.Library.RiskColor });
+
 		themeGroupbox:AddDropdown('ThemeManager_ThemeList', { Text = 'Theme list', Values = ThemesArray, Default = 1 })
 
 		themeGroupbox:AddButton('Set as default', function()
@@ -124,13 +131,19 @@ local ThemeManager = {} do
 			end
 		end)
 
-		backgroundGroupbox:AddLabel('Background color'):AddColorPicker('BackgroundColor', { Default = self.Library.BackgroundColor });
-		backgroundGroupbox:AddLabel('Main color')	:AddColorPicker('MainColor', { Default = self.Library.MainColor });
-		backgroundGroupbox:AddLabel('Accent color'):AddColorPicker('AccentColor', { Default = self.Library.AccentColor });
-		backgroundGroupbox:AddLabel('Outline color'):AddColorPicker('OutlineColor', { Default = self.Library.OutlineColor });
-		backgroundGroupbox:AddLabel('Text color')	:AddColorPicker('FontColor', { Default = self.Library.FontColor });
-		backgroundGroupbox:AddLabel('Risk Text color')	:AddColorPicker('RiskColor', { Default = self.Library.RiskColor });
-
+		backgroundGroupbox:AddToggle('BackgroundBlur', { Text = 'Enable Background Blur', Default = false, Callback = function(value)
+			Library.UseBlur = value
+			if not value then
+			Library.BlurSize = 0
+			end})
+		backgroundGroupbox:AddSlider('BackgroundBlurStrength', { Text = 'Background Blur Strength', Default = 0, Min = 0, Max = 100, Float = 1 })
+			:OnChanged(function()
+				if not Library.UseBlur then
+					Library.UseBlur = true
+				end
+			end)
+		backgroundGroupbox:AddDivider()
+		backgroundGroupbox:AddToggle('WireframeDrag', { Text = 'Wireframe Drag', Default = false })
 		ThemeManager:LoadDefault()
 
 		local function UpdateTheme()
