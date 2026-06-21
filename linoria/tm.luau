@@ -17,6 +17,28 @@ local ThemeManager = {} do
 		['Linoria UE'] 		= { 9, httpService:JSONDecode('{"FontColor":"ffffff","MainColor":"181818","AccentColor":"4777b6","BackgroundColor":"141414","OutlineColor":"1f1f1f"}') },
 	}
 
+	local function GetFontNames()
+		local fonts = {}
+		for _, font in ipairs(Enum.Font:GetEnumItems()) do
+			table.insert(fonts, font.Name)
+		end
+
+		table.sort(fonts)
+		return fonts
+	end
+
+	local function GetFontName(FontValue)
+		if typeof(FontValue) == 'EnumItem' and FontValue.EnumType == Enum.Font then
+			return FontValue.Name
+		end
+
+		if type(FontValue) == 'string' and FontValue ~= '' then
+			return FontValue
+		end
+
+		return 'Code'
+	end
+
 	function ThemeManager:ApplyTheme(theme)
 		local customThemeData = self:GetCustomTheme(theme)
 		local data = customThemeData or self.BuiltInThemes[theme]
@@ -96,12 +118,15 @@ local ThemeManager = {} do
 
 		themeGroupbox:AddDivider()
 
-		themeGroupbox:AddDropdown('ThemeManager_FontFace', { Text = 'Font Face', Values = {"Code", "SourceSans", "SourceSansBold", "SourceSansLight", "SourceSansItalic", "SourceSansSemibold", "Bodoni", "Garamond", "Cartoon", "Highway", "SciFi", "Arcade", "Fantasy", "Fantasy", "AmaticSC", "DenkOne", "Fondamento", "GrenzeGotisch", "JosefinSans", "Jura", "Kalam", "LuckiestGuy", "Merriweather", "Michroma", "Nunito", "Oswald", "Roboto", "RobotoCondensed", "RobotoMono", "Sarpanch", "SpecialElite", "TitilliumWeb", "Ubuntu", "BuilderSans", "BuilderSansMedium", "BuilderSansBold", "BuilderSansExtraBold", "Arimo", "ArimoBold", "Legacy"}, Default = 1, Searchable = true, Callback = function(value)
-			self.Library.Font = value
-			self.Library:UpdateFont()
-		end
-
-	 })
+		themeGroupbox:AddDropdown('ThemeManager_FontFace', {
+			Text = 'Font Face',
+			Values = GetFontNames(),
+			Default = GetFontName(self.Library.Font),
+			Searchable = true,
+			Callback = function(value)
+				self.Library:UpdateFont(value)
+			end,
+		})
 
 		themeGroupbox:AddDropdown('ThemeManager_ThemeList', { Text = 'Theme list', Values = ThemesArray, Default = 1 })
 
