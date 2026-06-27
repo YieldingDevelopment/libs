@@ -196,6 +196,10 @@ function Library:UpdateFont(FontValue)
                     end
                 end
             end
+
+            if window and window.UpdateTabBarCanvas then
+                window:UpdateTabBarCanvas()
+            end
         end)
     end
 end
@@ -3818,10 +3822,17 @@ function Library:CreateWindow(...)
     Library:AddToRegistry(TabBarInner, {
         BackgroundColor3 = 'BackgroundColor';
     });
-    local TabArea = Library:Create('Frame', {
+    local TabArea = Library:Create('ScrollingFrame', {
         BackgroundTransparency = 1;
+        BorderSizePixel = 0;
         Position = UDim2.new(0, 4, 0, 4);
         Size = UDim2.new(1, -8, 1, -8);
+        CanvasSize = UDim2.new(0, 0, 0, 0);
+        ScrollingDirection = Enum.ScrollingDirection.X;
+        ScrollBarThickness = 0;
+        ScrollBarImageTransparency = 1;
+        Active = true;
+        ClipsDescendants = true;
         ZIndex = 1;
         Parent = TabBarInner;
     });
@@ -3831,6 +3842,51 @@ function Library:CreateWindow(...)
         SortOrder = Enum.SortOrder.LayoutOrder;
         Parent = TabArea;
     });
+    Window.TabBarOuter = TabBarOuter
+    Window.TabBarInner = TabBarInner
+    Window.TabArea = TabArea
+    Window.TabListLayout = TabListLayout
+    function Window:UpdateTabBarCanvas()
+        local contentWidth = TabListLayout.AbsoluteContentSize.X + 8
+        local maxScroll = math.max(0, contentWidth - TabArea.AbsoluteSize.X)
+
+        TabArea.CanvasSize = UDim2.fromOffset(contentWidth, 0)
+        TabArea.CanvasPosition = Vector2.new(math.clamp(TabArea.CanvasPosition.X, 0, maxScroll), 0)
+    end
+    TabListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+        Window:UpdateTabBarCanvas()
+    end)
+    TabArea:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
+        Window:UpdateTabBarCanvas()
+    end)
+    local TabAreaHovered = false
+    TabArea.MouseEnter:Connect(function()
+        TabAreaHovered = true
+    end)
+    TabArea.MouseLeave:Connect(function()
+        TabAreaHovered = false
+    end)
+    Library:GiveSignal(InputService.InputChanged:Connect(function(Input)
+        if not TabAreaHovered then
+            return
+        end
+
+        if Input.UserInputType ~= Enum.UserInputType.MouseWheel then
+            return
+        end
+
+        local contentWidth = TabListLayout.AbsoluteContentSize.X + 8
+        local maxScroll = math.max(0, contentWidth - TabArea.AbsoluteSize.X)
+        if maxScroll <= 0 then
+            return
+        end
+
+        local nextPosition = math.clamp(TabArea.CanvasPosition.X - (Input.Position.Z * 24), 0, maxScroll)
+        if nextPosition ~= TabArea.CanvasPosition.X then
+            TabArea.CanvasPosition = Vector2.new(nextPosition, 0)
+        end
+    end))
+    Window:UpdateTabBarCanvas()
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
         BorderColor3 = Library.OutlineColor;
@@ -3997,6 +4053,9 @@ function Library:CreateWindow(...)
         function Tab:ResizeButton()
             local ButtonWidth = Library:GetTextBounds(self.Name, Library.Font, Library.FontSize + 2) + (self.IconSize > 0 and (self.IconSize + 6) or 0)
             self.Button.Size = UDim2.new(0, ButtonWidth + 8 + 4, 1, 0);
+            if Window and Window.UpdateTabBarCanvas then
+                Window:UpdateTabBarCanvas()
+            end
         end
         local TabIndicator = Library:Create('Frame', {
             BackgroundColor3 = Library.AccentColor;
@@ -4089,6 +4148,9 @@ function Library:CreateWindow(...)
         function Tab:SetLayoutOrder(Position)
             TabButton.LayoutOrder = Position;
             TabListLayout:ApplyLayout();
+            if Window and Window.UpdateTabBarCanvas then
+                Window:UpdateTabBarCanvas()
+            end
         end;
         function Tab:AddGroupbox(Info)
             local Groupbox = {};
